@@ -6,6 +6,7 @@ class Cross:
     def __init__(self, alignments):
         self.aligns_str = alignments
         self.aligns = self.aligns_from_str(alignments)
+        self.src_idxs, self.tgt_idxs = zip(*self.aligns)
 
         self._cross = None
         self._seq_aligns = None
@@ -45,8 +46,8 @@ class Cross:
         return self._seq_cross
 
     @classmethod
-    def from_list(cls, align_list, **kwargs):
-        return cls(cls.aligns_to_str(align_list), **kwargs)
+    def from_list(cls, align_list, *args, **kwargs):
+        return cls(cls.aligns_to_str(align_list))
 
     @staticmethod
     def aligns_from_str(aligns):
