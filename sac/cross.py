@@ -3,11 +3,9 @@ from itertools import combinations
 
 
 class Cross:
-    def __init__(self, alignments, source_text=None, target_text=None):
+    def __init__(self, alignments):
         self.aligns_str = alignments
         self.aligns = self.aligns_from_str(alignments)
-        self.src_text = source_text
-        self.tgt_text = target_text
 
         self._cross = None
         self._seq_aligns = None
@@ -52,12 +50,12 @@ class Cross:
 
     @staticmethod
     def aligns_from_str(aligns):
-        return sorted([tuple(map(int, align.split('-'))) for align in aligns.split()])
+        return sorted([tuple(map(int, align.split("-"))) for align in aligns.split()])
 
     @staticmethod
     def aligns_to_str(aligns):
         """ Convert list of alignments (tuple of src, tgt) to GIZA/Pharaoh string """
-        return ' '.join([f"{s}-{t}" for s, t in aligns])
+        return " ".join([f"{s}-{t}" for s, t in aligns])
 
     def _word_align_to_groups(self):
         """ Get all possible combinations of src_idxs and tgt_idxs (min_size=2), and find groups between these src/tgt
@@ -87,8 +85,12 @@ class Cross:
         src2tgtlist_d = {src: [i[1] for i in align] for src, align in src2aligns_d.items()}
         tgt2srclist_d = {tgt: [i[0] for i in align] for tgt, align in tgt2aligns_d.items()}
 
-        src_combs = sorted(self._consec_combinations(list(src2tgtlist_d.keys()), src2tgtlist_d), key=len, reverse=True)
-        tgt_combs = sorted(self._consec_combinations(list(tgt2srclist_d.keys()), tgt2srclist_d), key=len, reverse=True)
+        src_combs = sorted(
+            self._consec_combinations(list(src2tgtlist_d.keys()), src2tgtlist_d), key=len, reverse=True,
+        )
+        tgt_combs = sorted(
+            self._consec_combinations(list(tgt2srclist_d.keys()), tgt2srclist_d), key=len, reverse=True,
+        )
 
         src_idxs_grouped = set()
         tgt_idxs_grouped = set()
@@ -144,7 +146,7 @@ class Cross:
         max_src, max_tgt = [], []
         # group is a consecutive group of alignments
         for group in self.groups:
-            ''' Get a group's max source/target '''
+            """ Get a group's max source/target """
             src, tgt = map(list, zip(*group))
             max_src.append(max(src))
             max_tgt.append(max(tgt))
@@ -226,6 +228,7 @@ class Cross:
         """ Get missing idxs (= null alignments) and return them as alignments to -1.
             We use -1 so that we can still order our lists containing null alignments.
             Expects SORTED input lists. """
+
         def missing_idxs(idxs):
             prev_idx = None
             for idx in idxs:
@@ -248,7 +251,7 @@ class Cross:
         c = []
         for i in range(len(idxs)):
             for j in range(i + 1, len(idxs) + 1):
-                if j-i < min_size:
+                if j - i < min_size:
                     continue
 
                 s = idxs[i:j]
