@@ -4,15 +4,23 @@ from itertools import combinations
 
 class Cross:
     def __init__(self, alignments):
-        self.aligns_str = alignments
-        self.aligns = self.aligns_from_str(alignments)
+        self.aligns = aligns_from_str(alignments)
         self.src_idxs, self.tgt_idxs = zip(*self.aligns)
 
+        # Only do computationally heavy calculations when
+        # the property is actually required
+        self._aligns_w_null = None
         self._cross = None
+        self._null_aligns = None
         self._seq_aligns = None
-        self._seq_aligns_str = None
         self._seq_cross = None
         self._groups = None
+
+    @property
+    def aligns_w_null(self):
+        if self._aligns_w_null is None:
+            self._aligns_w_null = sorted(self.aligns + self.null_aligns)
+        return self._aligns_w_null
 
     @property
     def cross(self):
@@ -27,11 +35,10 @@ class Cross:
         return self._groups
 
     @property
-    def seq_aligns_str(self):
-        if self._seq_aligns_str is None:
-            self._seq_aligns_str = self.aligns_to_str(self.seq_aligns)
-
-        return self._seq_aligns_str
+    def null_aligns(self):
+        if self._null_aligns is None:
+            self._null_aligns = self._get_null_aligns()
+        return self._null_aligns
 
     @property
     def seq_aligns(self):
@@ -47,16 +54,7 @@ class Cross:
 
     @classmethod
     def from_list(cls, align_list, *args, **kwargs):
-        return cls(cls.aligns_to_str(align_list))
-
-    @staticmethod
-    def aligns_from_str(aligns):
-        return sorted([tuple(map(int, align.split("-"))) for align in aligns.split()])
-
-    @staticmethod
-    def aligns_to_str(aligns):
-        """ Convert list of alignments (tuple of src, tgt) to GIZA/Pharaoh string """
-        return " ".join([f"{s}-{t}" for s, t in aligns])
+        return cls(aligns_to_str(align_list))
 
     def _word_align_to_groups(self):
         """ Get all possible combinations of src_idxs and tgt_idxs (min_size=2), and find groups between these src/tgt
@@ -77,11 +75,9 @@ class Cross:
         """
         src_idxs, tgt_idxs = self._get_src_tgt_idxs(self.aligns)
 
-        # Get null alignments (missing idxs aligned to -1)
-        null_aligns = self._get_null_aligns(src_idxs, tgt_idxs)
         # Merge aligns with null alignments and sort
-        aligns = sorted(self.aligns + null_aligns)
-
+        aligns = sorted(self.aligns + self.null_aligns)
+        print('intermediate aligns', aligns)
         src2aligns_d, tgt2aligns_d = self._direction2aligns(aligns)
         src2tgtlist_d = {src: [i[1] for i in align] for src, align in src2aligns_d.items()}
         tgt2srclist_d = {tgt: [i[0] for i in align] for tgt, align in tgt2aligns_d.items()}
@@ -106,13 +102,13 @@ class Cross:
                 # If any item in this combination has already been grouped in another combo group, continue
                 if any(tgt in tgt_idxs_grouped for tgt in tgt_comb):
                     continue
-                external_aligns = self._has_external_aligns(src_comb, tgt_comb, src2tgtlist_d, tgt2srclist_d)
+                has_external_aligns = self._has_external_aligns(src_comb, tgt_comb, src2tgtlist_d, tgt2srclist_d)
 
                 # If the src_combo+tgt_combo have no external_aligns, keep going
-                if not external_aligns:
-                    internal_cross = self._has_internal_cross(src_comb, src2aligns_d)
+                if not has_external_aligns:
+                    has_internal_cross = self._has_internal_cross(src_comb, src2aligns_d)
                     # If the src_combo+tgt_combo have no internal_crosses, they can form a group
-                    if not internal_cross:
+                    if not has_internal_cross:
                         # Keep track of src+tgt idxs that are already grouped
                         src_idxs_grouped.update(src_comb)
                         tgt_idxs_grouped.update(tgt_comb)
@@ -122,11 +118,7 @@ class Cross:
                         # Break because we have found a suitable group
                         break
 
-        # For all src_ids and tgt_ids check if they are part of a group
-        # If not (and no matching group could be found)
-        # We do this (and a min_size=2 for the combos) because even with a min_size=1,
-        # some of these combos of size 1 won't be grouped because of one-to-many or many-to-one alignments
-        # Manually checking if all alignments are grouped, and if not adding as their own group, solves that
+        # Manually checking if all alignments are grouped, and if not: adding as their own group, solves that
         for src_id in src_idxs:
             if src_id not in src_idxs_grouped:
                 for aligns in src2aligns_d[src_id]:
@@ -224,39 +216,36 @@ class Cross:
 
         return dict(d_src), dict(d_tgt)
 
-    @staticmethod
-    def _get_null_aligns(src_idxs, tgt_idxs):
+    def _get_null_aligns(self):
         """ Get missing idxs (= null alignments) and return them as alignments to -1.
             We use -1 so that we can still order our lists containing null alignments.
-            Expects SORTED input lists. """
+            Expects SORTED input lists.
+        """
 
         def missing_idxs(idxs):
-            prev_idx = None
-            for idx in idxs:
-                if prev_idx is not None and idx != prev_idx + 1:
-                    yield prev_idx + 1
+            """ Note that this _only_ works on the alignments. This implies
+                that when words at the end of a sequence are not aligned
+                (so their index is missing), this will NOT be caught by this method.
+                To catch that, we need to know the number of tokens.
+                We can override this method in SAC to do that. """
+            idxs = set(idxs)
+            max_idx = max(idxs)
+            return [i for i in range(max_idx) if i not in idxs]
 
-                prev_idx = idx
+        src_missing = [(idx, -1) for idx in missing_idxs(self.src_idxs)]
+        tgt_missing = [(-1, idx) for idx in missing_idxs(self.tgt_idxs)]
 
-        src_missing = [(idx, -1) for idx in missing_idxs(src_idxs)]
-        tgt_missing = [(-1, idx) for idx in missing_idxs(tgt_idxs)]
-        missing = src_missing + tgt_missing
-
-        return missing
+        return src_missing + tgt_missing
 
     @staticmethod
-    def _consec_combinations(idxs, dir2dirlist_d, min_size=2):
-        """ Get all consequtive combinations of size at least 'min_size'.
-            min_size=2 should be enough, since we check the final missing alignments (of size 1) at the end. """
+    def _consec_combinations(idxs, dir2dirlist_d):
+        """ Get all consequtive combinations of idxs of all possible lengths """
         idxs.sort()
         c = []
         for i in range(len(idxs)):
             for j in range(i + 1, len(idxs) + 1):
-                if j - i < min_size:
-                    continue
-
                 s = idxs[i:j]
-                # Do not make combinations with None, because None's should always break groups
+                # Do not make combinations with -1 (null), because -1 should always break groups
                 if -1 in s or any(-1 in dir2dirlist_d[i] for i in s):
                     continue
 
@@ -275,3 +264,12 @@ class Cross:
         tgt_idxs = [pair[1] for pair in aligns]
 
         return sum([1 for t1, t2 in combinations(tgt_idxs, 2) if t2 < t1])
+
+
+def aligns_from_str(aligns):
+    return sorted([tuple(map(int, align.split("-"))) for align in aligns.split()])
+
+
+def aligns_to_str(aligns):
+    """ Convert list of alignments (tuple of src, tgt) to GIZA/Pharaoh string """
+    return " ".join([f"{s}-{t}" for s, t in aligns])
