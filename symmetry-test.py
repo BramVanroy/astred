@@ -1,43 +1,36 @@
-from sac import aligns_from_str, Cross
+from sac import aligns_from_str, SAC
+from astred.GenericTree import draw_trees
+import pandas as pd
 
-def main(s):
-    if not s:
-        return
-    print(s)
-    aligns = aligns_from_str(s)
+
+def main(r):
+    aligns = aligns_from_str(r['alignments'])
     reverse_aligns = [(t[1], t[0]) for t in aligns]
 
-    cross = Cross.from_list(aligns)
-    reverse_cross = Cross.from_list(reverse_aligns)
-
-    assert cross.cross == reverse_cross.cross
-    assert cross.seq_cross == reverse_cross.seq_cross
-
+    sac = SAC.from_list(aligns,
+                        r['src_segment'],
+                        r['tgt_segment'])
+    reverse_sac = SAC.from_list(reverse_aligns,
+                                r['tgt_segment'],
+                                r['src_segment'],
+                                src_lang='nl',
+                                tgt_lang='en')
+    print('ALIGNS', sac.aligns)
+    print('SRC', sac.src_text)
+    print('TGT', sac.tgt_text)
+    assert sac.cross == reverse_sac.cross
+    print('CROSS', sac.cross)
+    assert sac.seq_cross == reverse_sac.seq_cross
+    print('SEQ CROSS', sac.seq_cross)
+    print('SEQ GROUPS', sac.seq_groups)
+    assert sac.sac_cross == reverse_sac.sac_cross
+    print('SAC', sac.sac_cross)
+    print('SAC groups', sac.sac_groups)
+    print()
+    draw_trees(sac.src_tree, sac.tgt_tree, include_word_idx=True)
 
 if __name__ == '__main__':
-    s = """0-0 1-1 2-0 3-2 4-3 4-4 5-5
-    0-0 1-1 2-2 3-3 4-5 5-4 6-6 7-7
-    4-0 5-1 6-2 7-3 8-4 9-5 10-6 11-7
-    0-2 0-3 1-2 1-3 2-2 2-3 3-2 3-3 4-0 5-1 6-4 7-5 8-6 9-7 10-8 11-9
-    0-0 1-1 2-2 3-3 4-4 5-5 6-6 7-6 8-6 9-7
-    0-0 1-1 2-2 3-3 4-4 5-4 6-4 7-5
-    0-0 1-1 1-2 1-5 2-3 2-4 3-6 4-7 5-7 6-7 7-8
-    0-0 1-1 2-4 3-7 4-5 4-6 5-2 6-9 7-10 8-11
-    0-2 1-0 2-1 3-3 4-3 5-5 6-6
-    0-0 0-1 1-2 2-3 3-4 4-5 5-6 7-10 7-11 8-12 9-13 10-14 11-15
-    0-0 1-1 2-4 3-4 4-5 5-6 6-7 7-8 8-10 9-11 10-12 11-12 12-9 13-13 14-14 15-17 16-16 17-17 18-17 19-18
-    0-7 1-8 2-8 3-9 3-10 4-9 4-10 5-6 6-6 7-6 8-6 9-6 10-1 11-2 12-3 13-3 14-4 15-4 16-11
-    0-0 1-1 2-2 3-3 4-3 5-4 6-5
-    0-0 1-1 2-2 3-6 4-5 5-4 6-7
-    0-0 1-1 2-2 3-3 4-7 5-8 6-6 7-5 8-9
-    0-0 1-1 2-2 3-1 4-3 5-4 6-5 7-5 8-5 9-6
-    0-0 1-2 2-1 3-3 4-1 5-4 6-5 7-6 8-6 9-6 10-7
-    0-0 1-1 2-2 3-4 4-5 5-6 6-7 7-8 8-3 9-9
-    0-4 1-3 2-5 3-7 4-8 5-1 6-2 7-10 8-6 9-11
-    0-0 1-1 2-2 3-3 4-8 5-5 6-6 7-9
-    0-2 1-2 2-0 3-1 4-3 5-4 6-9 7-6 8-7 9-10
-    0-0 1-1 2-2 3-2 4-3 5-4 6-9 7-6 8-7 9-10
-    """
+    fin = r'C:\Python\projects\PreDicT\modelling-tree-edit-distance\data\test.txt'
 
-    for l in s.splitlines():
-        main(l.strip())
+    df = pd.read_csv(fin, sep='\t')
+    df.apply(main, axis=1)
