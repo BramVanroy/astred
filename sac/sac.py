@@ -1,4 +1,4 @@
-from astred.GenericTree import GenericTree
+from astred import GenericTree
 
 from . import Cross, aligns_to_str
 
