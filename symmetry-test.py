@@ -1,7 +1,7 @@
 from sac import aligns_from_str, SAC
-from astred.GenericTree import draw_trees
 import pandas as pd
 
+from tqdm import tqdm
 
 def main(r):
     aligns = aligns_from_str(r['alignments'])
@@ -27,10 +27,15 @@ def main(r):
     print('SAC', sac.sac_cross)
     print('SAC groups', sac.sac_groups)
     print()
-    draw_trees(sac.src_tree, sac.tgt_tree, include_word_idx=True)
+
 
 if __name__ == '__main__':
-    fin = r'C:\Python\projects\PreDicT\modelling-tree-edit-distance\data\test.txt'
+    import argparse
 
-    df = pd.read_csv(fin, sep='\t')
-    df.apply(main, axis=1)
+    cparser = argparse.ArgumentParser(description="Check if cross, seq_cross, and sac_cross values are symmetrical")
+
+    cparser.add_argument('fin', help='Path to input file')
+    cargs = cparser.parse_args()
+    df = pd.read_csv(cargs.fin, sep='\t')
+    tqdm.pandas()
+    df.progress_apply(main, axis=1)
