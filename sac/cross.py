@@ -77,17 +77,12 @@ class Cross:
 
         # Merge aligns with null alignments and sort
         aligns = sorted(self.aligns + self.null_aligns)
-        print('intermediate aligns', aligns)
         src2aligns_d, tgt2aligns_d = self._direction2aligns(aligns)
         src2tgtlist_d = {src: [i[1] for i in align] for src, align in src2aligns_d.items()}
         tgt2srclist_d = {tgt: [i[0] for i in align] for tgt, align in tgt2aligns_d.items()}
 
-        src_combs = sorted(
-            self._consec_combinations(list(src2tgtlist_d.keys()), src2tgtlist_d), key=len, reverse=True,
-        )
-        tgt_combs = sorted(
-            self._consec_combinations(list(tgt2srclist_d.keys()), tgt2srclist_d), key=len, reverse=True,
-        )
+        src_combs = self._consec_combinations(list(src2tgtlist_d.keys()), src2tgtlist_d)
+        tgt_combs = self._consec_combinations(list(tgt2srclist_d.keys()), tgt2srclist_d)
 
         src_idxs_grouped = set()
         tgt_idxs_grouped = set()
@@ -242,7 +237,8 @@ class Cross:
         """ Get all consequtive combinations of idxs of all possible lengths.
             When getting consecutive combinations in cross, we want to split on -1 (null),
             but when getting consec groups in SAC, we already have groups without -1, so
-            no need to check (dir2dirlist_d will be None). """
+            no need to check (dir2dirlist_d will be None).
+            Sort by largest so that we can find the largest possible groups first"""
         idxs.sort()
         c = []
         for i in range(len(idxs)):
@@ -254,7 +250,7 @@ class Cross:
 
                 c.append(s)
 
-        return c
+        return sorted(c, key=len, reverse=True)
 
     @staticmethod
     def get_cross(aligns):
