@@ -238,15 +238,18 @@ class Cross:
         return src_missing + tgt_missing
 
     @staticmethod
-    def _consec_combinations(idxs, dir2dirlist_d):
-        """ Get all consequtive combinations of idxs of all possible lengths """
+    def _consec_combinations(idxs, dir2dirlist_d=None):
+        """ Get all consequtive combinations of idxs of all possible lengths.
+            When getting consecutive combinations in cross, we want to split on -1 (null),
+            but when getting consec groups in SAC, we already have groups without -1, so
+            no need to check (dir2dirlist_d will be None). """
         idxs.sort()
         c = []
         for i in range(len(idxs)):
             for j in range(i + 1, len(idxs) + 1):
                 s = idxs[i:j]
                 # Do not make combinations with -1 (null), because -1 should always break groups
-                if -1 in s or any(-1 in dir2dirlist_d[i] for i in s):
+                if dir2dirlist_d is not None and (-1 in s or any(-1 in dir2dirlist_d[i] for i in s)):
                     continue
 
                 c.append(s)
