@@ -71,13 +71,17 @@ class Cross:
     @property
     def src2tgtlist_d(self):
         if self._src2tgtlist_d is None:
-            self._src2tgtlist_d = {src: [i[1] for i in align] for src, align in self.src2aligns_d.items()}
+            self._src2tgtlist_d = {
+                src: [i[1] for i in align] for src, align in self.src2aligns_d.items()
+            }
         return self._src2tgtlist_d
 
     @property
     def tgt2srclist_d(self):
         if self._tgt2srclist_d is None:
-            self._tgt2srclist_d = {tgt: [i[0] for i in align] for tgt, align in self.tgt2aligns_d.items()}
+            self._tgt2srclist_d = {
+                tgt: [i[0] for i in align] for tgt, align in self.tgt2aligns_d.items()
+            }
         return self._tgt2srclist_d
 
     @classmethod
@@ -85,57 +89,71 @@ class Cross:
         return cls(aligns_to_str(align_list))
 
     def _word_align_to_groups(self):
-        """ Get all possible combinations of src_idxs and tgt_idxs (min_size=2), and find groups between these src/tgt
-            combos so that the following requirements are met for that group:
+        """ Get all possible combinations of src_idxs and tgt_idxs (min_size=2), and find
+            groups between these src/tgt combos so that the following requirements are met for
+            that group:
             1. no item in src or tgt can be aligned to anything outside the group
             2. no alignments within the group can cross each other
 
-            After finding all possible combinations, it is likely that not all items have been grouped. In that case,
-            check which alignments are not grouped yet, and add them to their individual group.
+            After finding all possible combinations, it is likely that not all items have been
+            grouped. In that case, check which alignments are not grouped yet, and add them to
+            their individual group.
 
             Variable names:
             - (src|tgt)2aligns_d: {idx: list of alignments (as tuples) with this idx}
-            - (src2tgt|tgt2src)list_d: {src_idx|tgt_idx: list of tgts or srcs (resp.) connected to this item}
-            - (src|tgt)_combs: all possible combinations of src or tgt idxs (with a min_size=2) and excluding combos
+            - (src2tgt|tgt2src)list_d: {src_idx|tgt_idx: list of tgts or srcs (resp.) connected
+            to this item}
+            - (src|tgt)_combs: all possible combinations of src or tgt idxs (with a min_size=2)
+             and excluding combos
                                that are aligned to -1 (= null alignments; they break groups)
             - (src|tgt)_idxs: indices of src or tgt, not including null alignments
-            - (src|tgt)_idxs_grouped: sets to keep track which idxs have already been put into a group
+            - (src|tgt)_idxs_grouped: sets to keep track which idxs have already been put into
+             a group
         """
-        src_combs = self._consec_combinations(list(self.src2tgtlist_d.keys()), self.src2tgtlist_d)
-        tgt_combs = self._consec_combinations(list(self.tgt2srclist_d.keys()), self.tgt2srclist_d)
+        src_combs = self._consec_combinations(
+            list(self.src2tgtlist_d.keys()), self.src2tgtlist_d
+        )
+        tgt_combs = self._consec_combinations(
+            list(self.tgt2srclist_d.keys()), self.tgt2srclist_d
+        )
 
         src_idxs_grouped = set()
         tgt_idxs_grouped = set()
         groups = []
         # Try grouping a src_comb with a tgt_comb
         for src_comb in src_combs:
-            # If any item in this combination has already been grouped in another combo group, continue
+            # If any item in this combination has already been grouped in another
+            # combo group, continue
             if any(src in src_idxs_grouped for src in src_comb):
                 continue
 
             for tgt_comb in tgt_combs:
-                # If any item in this combination has already been grouped in another combo group, continue
+                # If any item in this combination has already been grouped in another
+                # combo group, continue
                 if any(tgt in tgt_idxs_grouped for tgt in tgt_comb):
                     continue
                 has_external_aligns = self._has_external_aligns(
-                    src_comb, tgt_comb, self.src2tgtlist_d, self.tgt2srclist_d
+                    src_comb, tgt_comb
                 )
 
                 # If the src_combo+tgt_combo have no external_aligns, keep going
                 if not has_external_aligns:
-                    has_internal_cross = self._has_internal_cross(src_comb, self.src2aligns_d)
+                    has_internal_cross = self._has_internal_cross(src_comb)
                     # If the src_combo+tgt_combo have no internal_crosses, they can form a group
                     if not has_internal_cross:
                         # Keep track of src+tgt idxs that are already grouped
                         src_idxs_grouped.update(src_comb)
                         tgt_idxs_grouped.update(tgt_comb)
                         # Get all alignments of this group and add them as group
-                        alignments_of_group = [i for src in src_comb for i in self.src2aligns_d[src]]
+                        alignments_of_group = [
+                            i for src in src_comb for i in self.src2aligns_d[src]
+                        ]
                         groups.append(alignments_of_group)
                         # Break because we have found a suitable group
                         break
 
-        # Manually checking if all alignments are grouped, and if not: adding as their own group, solves that
+        # Manually checking if all alignments are grouped, and if not: adding as
+        # their own group, solves that
         for src_id in self.src_idxs:
             if src_id not in src_idxs_grouped:
                 for aligns in self.src2aligns_d[src_id]:
@@ -187,13 +205,13 @@ class Cross:
 
         return src_idxs, tgt_idxs
 
-    def _has_internal_cross(self, src_comb, src2aligns_d):
+    def _has_internal_cross(self, src_comb):
         """ Check if alignments in this src_comb cross each other.
             No need to check tgt_comb, as 'cross' is direction-agnostic """
         # Get alignments of src_comb indices
         aligns = []
         for idx in src_comb:
-            aligns.extend(src2aligns_d[idx])
+            aligns.extend(self.src2aligns_d[idx])
 
         # Check if any alignment combination crosses each other
         return any(self.alignments_cross(align_pair) for align_pair in combinations(aligns, 2))
@@ -207,16 +225,15 @@ class Cross:
 
         return a_1[1] > a_2[1]
 
-    @staticmethod
-    def _has_external_aligns(src_comb, tgt_comb, src2tgtlist_d, tgt2srclist_d):
+    def _has_external_aligns(self, src_comb, tgt_comb):
         """ If any source or target id is connected to an item that is not in the other combo,
             i.e. that is outside this group, return True. """
         for src_idx in src_comb:
-            if any(i not in tgt_comb for i in src2tgtlist_d[src_idx]):
+            if any(i not in tgt_comb for i in self.src2tgtlist_d[src_idx]):
                 return True
 
         for tgt_idx in tgt_comb:
-            if any(i not in src_comb for i in tgt2srclist_d[tgt_idx]):
+            if any(i not in src_comb for i in self.tgt2srclist_d[tgt_idx]):
                 return True
 
         return False
@@ -267,7 +284,9 @@ class Cross:
             for j in range(i + 1, len(idxs) + 1):
                 s = idxs[i:j]
                 # Do not make combinations with -1 (null), because -1 should always break groups
-                if dir2dirlist_d is not None and (-1 in s or any(-1 in dir2dirlist_d[i] for i in s)):
+                if dir2dirlist_d is not None and (
+                    -1 in s or any(-1 in dir2dirlist_d[i] for i in s)
+                ):
                     continue
 
                 c.append(s)
