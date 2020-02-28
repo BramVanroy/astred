@@ -3,9 +3,13 @@ from itertools import combinations
 
 
 class Cross:
-    def __init__(self, alignments):
+    def __init__(self, alignments, allow_mwe=False):
         self.aligns = aligns_from_str(alignments)
         self.src_idxs, self.tgt_idxs = zip(*self.aligns)
+        self.allow_mwe = allow_mwe
+
+        if allow_mwe:
+            raise NotImplementedError("Even though a cool idea, this is not implemented yet.")
 
         # Only do computationally heavy calculations when
         # the property is actually required
@@ -14,17 +18,27 @@ class Cross:
         self._null_aligns = None
         self._seq_aligns = None
         self._seq_cross = None
-        self._groups = None
+        self._seq_groups = None
         self._src2aligns_d = None
         self._tgt2aligns_d = None
         self._src2tgtlist_d = None
         self._tgt2srclist_d = None
+        self._mwe_groups = None
+        self._mwe_src_group_to_tgt_group = None
+
+    @property
+    def mwe_src_group_to_tgt_group(self):
+        raise NotImplementedError()
 
     @property
     def aligns_w_null(self):
         if self._aligns_w_null is None:
             self._aligns_w_null = sorted(self.aligns + self.null_aligns)
         return self._aligns_w_null
+
+    @property
+    def mwe_groups(self):
+        return self._mwe_groups
 
     @property
     def src2aligns_d(self):
@@ -45,10 +59,10 @@ class Cross:
         return self._cross
 
     @property
-    def groups(self):
-        if self._groups is None:
-            self._groups = self._word_align_to_groups()
-        return self._groups
+    def seq_groups(self):
+        if self._seq_groups is None:
+            self._seq_groups = self._word_align_to_groups()
+        return self._seq_groups
 
     @property
     def null_aligns(self):
@@ -59,7 +73,7 @@ class Cross:
     @property
     def seq_aligns(self):
         if self._seq_aligns is None:
-            self._seq_aligns = self._groups_to_seq_align()
+            self._seq_aligns = self._groups_to_align(self.seq_groups)
         return self._seq_aligns
 
     @property
@@ -120,6 +134,7 @@ class Cross:
         src_idxs_grouped = set()
         tgt_idxs_grouped = set()
         groups = []
+        mwe_groups = []
         # Try grouping a src_comb with a tgt_comb
         for src_comb in src_combs:
             # If any item in this combination has already been grouped in another
@@ -139,8 +154,10 @@ class Cross:
                 # If the src_combo+tgt_combo have no external_aligns, keep going
                 if not has_external_aligns:
                     has_internal_cross = self._has_internal_cross(src_comb)
+                    # only execute _is_mwe if it is allowed
+                    is_mwe = self.allow_mwe and self._is_mwe(src_comb, tgt_comb)
                     # If the src_combo+tgt_combo have no internal_crosses, they can form a group
-                    if not has_internal_cross:
+                    if not has_internal_cross or is_mwe:
                         # Keep track of src+tgt idxs that are already grouped
                         src_idxs_grouped.update(src_comb)
                         tgt_idxs_grouped.update(tgt_comb)
@@ -149,31 +166,44 @@ class Cross:
                             i for src in src_comb for i in self.src2aligns_d[src]
                         ]
                         groups.append(alignments_of_group)
+                        if is_mwe:
+                            mwe_groups.append(alignments_of_group)
                         # Break because we have found a suitable group
                         break
 
-        # Manually checking if all alignments are grouped, and if not: adding as
-        # their own group, solves that
-        for src_id in self.src_idxs:
-            if src_id not in src_idxs_grouped:
-                for aligns in self.src2aligns_d[src_id]:
-                    if [aligns] not in groups:
-                        groups.append([aligns])
-
-        for tgt_id in self.tgt_idxs:
-            if tgt_id not in tgt_idxs_grouped:
-                for aligns in self.tgt2aligns_d[tgt_id]:
-                    if [aligns] not in groups:
-                        groups.append([aligns])
+        groups = self._add_unsolved_idxs(src_idxs_grouped, tgt_idxs_grouped, groups)
+        self._mwe_groups = mwe_groups
 
         return sorted(groups)
 
-    def _groups_to_seq_align(self):
-        """ Takes groups of sequential alignments and transforms it into
-            actual sequence alignments with one alignment point per sequence. """
+    def _add_unsolved_idxs(self, src_idxs_grouped, tgt_idxs_grouped, groups):
+        """ Manually checking if all alignments are grouped, and if not: adding as
+        their own group, solves that
+        :param src_idxs_grouped:
+        :param tgt_idxs_grouped:
+        :param groups:
+        :return:
+        """
+        for src_idx in self.src_idxs:
+            if src_idx not in src_idxs_grouped:
+                for aligns in self.src2aligns_d[src_idx]:
+                    if [aligns] not in groups:
+                        groups.append([aligns])
+
+        for tgt_idx in self.tgt_idxs:
+            if tgt_idx not in tgt_idxs_grouped:
+                for aligns in self.tgt2aligns_d[tgt_idx]:
+                    if [aligns] not in groups:
+                        groups.append([aligns])
+
+        return groups
+
+    def _groups_to_align(self, groups):
+        """ Takes groups of alignments and transforms it into
+            actual alignments with one alignment point per group. """
         max_src, max_tgt = [], []
         # group is a consecutive group of alignments
-        for group in self.groups:
+        for group in groups:
             """ Get a group's max source/target """
             src, tgt = map(list, zip(*group))
             max_src.append(max(src))
@@ -184,9 +214,9 @@ class Cross:
         tgt_order = self._get_idxs(max_tgt)
 
         # Merge indices into sequence alignments
-        seq_align = [*zip(src_order, tgt_order)]
+        aligns = [*zip(src_order, tgt_order)]
 
-        return seq_align
+        return aligns
 
     @staticmethod
     def _get_idxs(l):
@@ -305,10 +335,17 @@ class Cross:
 
         return sum([1 for t1, t2 in combinations(tgt_idxs, 2) if t2 < t1])
 
+    def _is_mwe(self, src_comb, tgt_comb):
+        """ If all source items are connected to all target items, we assume that this is
+            a segment that is likely to be a multi-word expression. """
+        for src_idx in src_comb:
+            if any(tgt_idx not in self._src2tgtlist_d[src_idx] for tgt_idx in tgt_comb):
+                return False
+
+        return True
 
 def aligns_from_str(aligns):
     return sorted([tuple(map(int, align.split("-"))) for align in aligns.split()])
-
 
 def aligns_to_str(aligns):
     """ Convert list of alignments (tuple of src, tgt) to GIZA/Pharaoh string """

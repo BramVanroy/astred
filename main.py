@@ -7,8 +7,9 @@ def main(*args):
     print()
     print("SAC WORD ALIGN", aligns_to_str(sac.aligns))
     print("SAC GROUPS", sac.groups)
-    print("SAC SEQ ALIGN", aligns_to_str(sac.seq_aligns))
-    sac.regroup_by_subtrees()
+    # print("SAC SEQ ALIGN", aligns_to_str(sac.seq_aligns))
+    new_groups = sac.regroup_by_subtrees()
+    print(new_groups)
     draw_trees(sac.src_tree, sac.tgt_tree)
 
 if __name__ == "__main__":
