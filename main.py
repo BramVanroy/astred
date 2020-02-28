@@ -9,7 +9,7 @@ def main(*args):
     print("SAC GROUPS", sac.groups)
     print("SAC SEQ ALIGN", aligns_to_str(sac.seq_aligns))
     sac.regroup_by_subtrees()
-
+    draw_trees(sac.src_tree, sac.tgt_tree)
 
 if __name__ == "__main__":
     main("0-0 1-1 3-2 4-3 5-7 6-7 7-7 8-4 9-5 10-6",

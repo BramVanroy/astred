@@ -15,12 +15,28 @@ class Cross:
         self._seq_aligns = None
         self._seq_cross = None
         self._groups = None
+        self._src2aligns_d = None
+        self._tgt2aligns_d = None
+        self._src2tgtlist_d = None
+        self._tgt2srclist_d = None
 
     @property
     def aligns_w_null(self):
         if self._aligns_w_null is None:
             self._aligns_w_null = sorted(self.aligns + self.null_aligns)
         return self._aligns_w_null
+
+    @property
+    def src2aligns_d(self):
+        if self._src2aligns_d is None:
+            self._src2aligns_d, self._tgt2aligns_d = self._direction2aligns(self.aligns_w_null)
+        return self._src2aligns_d
+
+    @property
+    def tgt2aligns_d(self):
+        if self._tgt2aligns_d is None:
+            self._src2aligns_d, self._tgt2aligns_d = self._direction2aligns(self.aligns_w_null)
+        return self._tgt2aligns_d
 
     @property
     def cross(self):
@@ -52,6 +68,18 @@ class Cross:
             self._seq_cross = self.get_cross(self.seq_aligns)
         return self._seq_cross
 
+    @property
+    def src2tgtlist_d(self):
+        if self._src2tgtlist_d is None:
+            self._src2tgtlist_d = {src: [i[1] for i in align] for src, align in self.src2aligns_d.items()}
+        return self._src2tgtlist_d
+
+    @property
+    def tgt2srclist_d(self):
+        if self._tgt2srclist_d is None:
+            self._tgt2srclist_d = {tgt: [i[0] for i in align] for tgt, align in self.tgt2aligns_d.items()}
+        return self._tgt2srclist_d
+
     @classmethod
     def from_list(cls, align_list, *args, **kwargs):
         return cls(aligns_to_str(align_list))
@@ -73,16 +101,8 @@ class Cross:
             - (src|tgt)_idxs: indices of src or tgt, not including null alignments
             - (src|tgt)_idxs_grouped: sets to keep track which idxs have already been put into a group
         """
-        src_idxs, tgt_idxs = self._get_src_tgt_idxs(self.aligns)
-
-        # Merge aligns with null alignments and sort
-        aligns = sorted(self.aligns + self.null_aligns)
-        src2aligns_d, tgt2aligns_d = self._direction2aligns(aligns)
-        src2tgtlist_d = {src: [i[1] for i in align] for src, align in src2aligns_d.items()}
-        tgt2srclist_d = {tgt: [i[0] for i in align] for tgt, align in tgt2aligns_d.items()}
-
-        src_combs = self._consec_combinations(list(src2tgtlist_d.keys()), src2tgtlist_d)
-        tgt_combs = self._consec_combinations(list(tgt2srclist_d.keys()), tgt2srclist_d)
+        src_combs = self._consec_combinations(list(self.src2tgtlist_d.keys()), self.src2tgtlist_d)
+        tgt_combs = self._consec_combinations(list(self.tgt2srclist_d.keys()), self.tgt2srclist_d)
 
         src_idxs_grouped = set()
         tgt_idxs_grouped = set()
@@ -97,32 +117,34 @@ class Cross:
                 # If any item in this combination has already been grouped in another combo group, continue
                 if any(tgt in tgt_idxs_grouped for tgt in tgt_comb):
                     continue
-                has_external_aligns = self._has_external_aligns(src_comb, tgt_comb, src2tgtlist_d, tgt2srclist_d)
+                has_external_aligns = self._has_external_aligns(
+                    src_comb, tgt_comb, self.src2tgtlist_d, self.tgt2srclist_d
+                )
 
                 # If the src_combo+tgt_combo have no external_aligns, keep going
                 if not has_external_aligns:
-                    has_internal_cross = self._has_internal_cross(src_comb, src2aligns_d)
+                    has_internal_cross = self._has_internal_cross(src_comb, self.src2aligns_d)
                     # If the src_combo+tgt_combo have no internal_crosses, they can form a group
                     if not has_internal_cross:
                         # Keep track of src+tgt idxs that are already grouped
                         src_idxs_grouped.update(src_comb)
                         tgt_idxs_grouped.update(tgt_comb)
                         # Get all alignments of this group and add them as group
-                        alignments_of_group = [i for src in src_comb for i in src2aligns_d[src]]
+                        alignments_of_group = [i for src in src_comb for i in self.src2aligns_d[src]]
                         groups.append(alignments_of_group)
                         # Break because we have found a suitable group
                         break
 
         # Manually checking if all alignments are grouped, and if not: adding as their own group, solves that
-        for src_id in src_idxs:
+        for src_id in self.src_idxs:
             if src_id not in src_idxs_grouped:
-                for aligns in src2aligns_d[src_id]:
+                for aligns in self.src2aligns_d[src_id]:
                     if [aligns] not in groups:
                         groups.append([aligns])
 
-        for tgt_id in tgt_idxs:
+        for tgt_id in self.tgt_idxs:
             if tgt_id not in tgt_idxs_grouped:
-                for aligns in tgt2aligns_d[tgt_id]:
+                for aligns in self.tgt2aligns_d[tgt_id]:
                     if [aligns] not in groups:
                         groups.append([aligns])
 
