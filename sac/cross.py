@@ -309,19 +309,17 @@ class Cross:
             no need to check (dir2dirlist_d will be None).
             Sort by largest so that we can find the largest possible groups first"""
         idxs.sort()
-        c = []
-        for i in range(len(idxs)):
-            for j in range(i + 1, len(idxs) + 1):
-                s = idxs[i:j]
+        n_idxs = len(idxs)
+        for i in range(n_idxs, 0, -1):
+            for j in range(n_idxs - i + 1):
+                s = idxs[j:j + i]
                 # Do not make combinations with -1 (null), because -1 should always break groups
                 if dir2dirlist_d is not None and (
                     -1 in s or any(-1 in dir2dirlist_d[i] for i in s)
                 ):
                     continue
 
-                c.append(s)
-
-        return sorted(c, key=len, reverse=True)
+                yield s
 
     @staticmethod
     def get_cross(aligns):

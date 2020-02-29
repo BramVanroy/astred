@@ -89,14 +89,12 @@ class SAC(Cross):
     def _valid_subtree_combs(self, idxs, direction):
         """ Return sorted by largest possible combinations/subtree first."""
         idxs.sort()
-        c = []
-        for i in range(len(idxs)):
-            for j in range(i + 1, len(idxs) + 1):
-                r = idxs[i:j]
+        n_idxs = len(idxs)
+        for i in range(n_idxs, 0, -1):
+            for j in range(n_idxs - i + 1):
+                r = idxs[j:j + i]
                 if self._is_valid_subtree(r, direction):
-                    c.append(r)
-
-        return sorted(c, key=len, reverse=True)
+                    yield r
 
     def regroup_by_subtrees(self):
         modified_groups = []
