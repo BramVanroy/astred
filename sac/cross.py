@@ -127,14 +127,19 @@ class Cross:
         src_combs = self._consec_combinations(
             list(self.src2tgtlist_d.keys()), self.src2tgtlist_d
         )
-        tgt_combs = self._consec_combinations(
+
+        # need to listify the generator because it is in the internal loop
+        # the generator would exhaust after the first outer loop, but we need to re-use
+        # it for all outer loops, so build a list
+        tgt_combs = list(self._consec_combinations(
             list(self.tgt2srclist_d.keys()), self.tgt2srclist_d
-        )
+        ))
 
         src_idxs_grouped = set()
         tgt_idxs_grouped = set()
         groups = []
         mwe_groups = []
+
         # Try grouping a src_comb with a tgt_comb
         for src_comb in src_combs:
             # If any item in this combination has already been grouped in another
@@ -147,6 +152,7 @@ class Cross:
                 # combo group, continue
                 if any(tgt in tgt_idxs_grouped for tgt in tgt_comb):
                     continue
+
                 has_external_aligns = self._has_external_aligns(
                     src_comb, tgt_comb
                 )
@@ -307,12 +313,12 @@ class Cross:
             When getting consecutive combinations in cross, we want to split on -1 (null),
             but when getting consec groups in SAC, we already have groups without -1, so
             no need to check (dir2dirlist_d will be None).
-            Sort by largest so that we can find the largest possible groups first"""
+            Returns largest possible groups first and decreases in length """
         idxs.sort()
         n_idxs = len(idxs)
         for i in range(n_idxs, 0, -1):
             for j in range(n_idxs - i + 1):
-                s = idxs[j:j + i]
+                s = idxs[j:j+i]
                 # Do not make combinations with -1 (null), because -1 should always break groups
                 if dir2dirlist_d is not None and (
                     -1 in s or any(-1 in dir2dirlist_d[i] for i in s)
@@ -342,8 +348,10 @@ class Cross:
 
         return True
 
+
 def aligns_from_str(aligns):
     return sorted([tuple(map(int, align.split("-"))) for align in aligns.split()])
+
 
 def aligns_to_str(aligns):
     """ Convert list of alignments (tuple of src, tgt) to GIZA/Pharaoh string """

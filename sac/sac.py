@@ -4,7 +4,7 @@ from . import Cross, aligns_to_str
 
 
 class SAC(Cross):
-    def __init__(self, alignments, src_text, tgt_text, src_lang="en", tgt_lang="nl", **kwargs):
+    def __init__(self, alignments, src_text, tgt_text, src_lang="en", tgt_lang="nl", use_gpu=True, **kwargs):
         super(SAC, self).__init__(alignments, **kwargs)
         self.src_text = src_text
         self.src_tokens = src_text.split()
@@ -13,8 +13,8 @@ class SAC(Cross):
         self.tgt_tokens = tgt_text.split()
         self.n_tgt_tokens = len(self.tgt_tokens)
 
-        self.src_tree = GenericTree.from_string(src_text, lang_or_model=src_lang)
-        self.tgt_tree = GenericTree.from_string(tgt_text, lang_or_model=tgt_lang)
+        self.src_tree = GenericTree.from_string(src_text, lang_or_model=src_lang, use_gpu=use_gpu)
+        self.tgt_tree = GenericTree.from_string(tgt_text, lang_or_model=tgt_lang, use_gpu=use_gpu)
 
         self._sac_aligns = None
         self._sac_cross = None
@@ -92,7 +92,7 @@ class SAC(Cross):
         n_idxs = len(idxs)
         for i in range(n_idxs, 0, -1):
             for j in range(n_idxs - i + 1):
-                r = idxs[j:j + i]
+                r = idxs[j:j+i]
                 if self._is_valid_subtree(r, direction):
                     yield r
 
@@ -112,9 +112,12 @@ class SAC(Cross):
             group_src_idxs = list(set(group_src_idxs))
             group_tgt_idxs = list(set(group_tgt_idxs))
             # src_combs and tgt_combs are only valid subtrees, so
-            # not ALL combinations
+            # they are not ALL combinations
             src_combs = self._valid_subtree_combs(group_src_idxs, "src")
-            tgt_combs = self._valid_subtree_combs(group_tgt_idxs, "tgt")
+            # need to listify the generator because it is in the internal loop
+            # the generator would exhaust after the first outer loop, but we need to re-use
+            # it for all outer loops, so build a list
+            tgt_combs = list(self._valid_subtree_combs(group_tgt_idxs, "tgt"))
 
             # Try grouping a src_comb with a tgt_comb
             for src_comb in src_combs:
