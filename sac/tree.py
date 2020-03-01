@@ -1,12 +1,12 @@
-from collections import Counter, defaultdict
 import warnings
+from collections import Counter, defaultdict
 
 from nltk import ParentedTree
 
 from sac.utils import load_nlp
 
 # stanfordnlp triggers torch's UserWarnings
-warnings.filterwarnings('ignore', category=UserWarning)
+warnings.filterwarnings("ignore", category=UserWarning)
 
 
 class GenericTree(ParentedTree):
@@ -15,8 +15,16 @@ class GenericTree(ParentedTree):
     to transform a spaCy Span into a tree structure.
     """
 
-    def __init__(self, node, is_root=False, text=None, word_order_idx=0,
-                 add_word_order_tree=False, level=0, children=None):
+    def __init__(
+        self,
+        node,
+        is_root=False,
+        text=None,
+        word_order_idx=0,
+        add_word_order_tree=False,
+        level=0,
+        children=None,
+    ):
         """ Build GenericTree
         :param node: this tree's label
         :param is_root: is this the root tree (main tree). If so, the indices will be set automatically.
@@ -27,16 +35,23 @@ class GenericTree(ParentedTree):
         self.text = text
         self.text_tree = None
         if text:
-            self.text_tree = GenericTree(text, is_root=False, word_order_idx=word_order_idx,
-                                         children=[c.text_tree for c in children])
+            self.text_tree = GenericTree(
+                text,
+                is_root=False,
+                word_order_idx=word_order_idx,
+                children=[c.text_tree for c in children],
+            )
 
         self.word_order_idx = word_order_idx
         self.word_idx_tree = None
         self.add_word_order_tree = add_word_order_tree
         if add_word_order_tree:
-            self.word_idx_tree = GenericTree(word_order_idx, is_root=False,
-                                             word_order_idx=word_order_idx,
-                                             children=[c.word_idx_tree for c in children])
+            self.word_idx_tree = GenericTree(
+                word_order_idx,
+                is_root=False,
+                word_order_idx=word_order_idx,
+                children=[c.word_idx_tree for c in children],
+            )
 
         self.level = level
         self.is_root = is_root
@@ -131,7 +146,7 @@ class GenericTree(ParentedTree):
             label_counter[label] += 1
             tree.set_label(f"{label}-{label_counter[label]}")
 
-    def to_string(self, parens='()', pretty=False):
+    def to_string(self, parens="()", pretty=False):
         """ Convert a tree to a string representation (using NLTK's tree methods).
 
         :param parens: which parenthesis to use to visually represent nodes
@@ -141,12 +156,12 @@ class GenericTree(ParentedTree):
         if pretty:
             form = self.pformat(parens=parens)
         else:
-            form = self._pformat_flat('', parens, False).replace(' ', '')
+            form = self._pformat_flat("", parens, False).replace(" ", "")
 
         return form
 
     @classmethod
-    def from_spacy(cls, span, label='dep_'):
+    def from_spacy(cls, span, label="dep_"):
         """ Converts a parsed spaCy span into a GenericTree
         :param span: spaCy span
         :param label: which spaCy Token property to use to create the tree
@@ -157,21 +172,23 @@ class GenericTree(ParentedTree):
             children = list(root.children)
             # Only get the main label, not any subtypes
             # See https://universaldependencies.org/ext-dep-index.html
-            root_label = getattr(root, label).split(':')[0]
+            root_label = getattr(root, label).split(":")[0]
             level += 1
             child_trees = [parse(n, level=level) for n in children] if children else []
-            return cls(root_label,
-                       is_root=is_root,
-                       text=root.text,
-                       word_order_idx=root.i,
-                       add_word_order_tree=True,
-                       level=level,
-                       children=child_trees)
+            return cls(
+                root_label,
+                is_root=is_root,
+                text=root.text,
+                word_order_idx=root.i,
+                add_word_order_tree=True,
+                level=level,
+                children=child_trees,
+            )
 
         return parse(span.root, is_root=True)
 
     @classmethod
-    def from_string(cls, text, lang_or_model='en', **kwargs):
+    def from_string(cls, text, lang_or_model="en", **kwargs):
         """ Convert a string into a GenericTree
 
         :param text: text to process
@@ -193,13 +210,15 @@ class GenericTree(ParentedTree):
         """ Used by super class when converting the tree """
         if isinstance(val, GenericTree):
             children = [cls.convert(child) for child in val.children]
-            return cls(val._label,
-                       is_root=val.is_root,
-                       text=val.text,
-                       word_order_idx=val.word_order_idx,
-                       add_word_order_tree=val.add_word_order_tree,
-                       level=val.level,
-                       children=children)
+            return cls(
+                val._label,
+                is_root=val.is_root,
+                text=val.text,
+                word_order_idx=val.word_order_idx,
+                add_word_order_tree=val.add_word_order_tree,
+                level=val.level,
+                children=children,
+            )
         else:
             return val
 
@@ -207,5 +226,3 @@ class GenericTree(ParentedTree):
     def init_nlp(cls, lang, nlp):
         if lang not in cls.NLPS:
             cls.NLPS[lang] = nlp
-
-

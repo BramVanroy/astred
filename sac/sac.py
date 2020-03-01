@@ -4,7 +4,17 @@ from .utils import aligns_to_str
 
 
 class SAC(_Cross):
-    def __init__(self, src_segment, tgt_segment, alignments, src_lang="en", tgt_lang="nl", use_gpu=True, verbose=0, **kwargs):
+    def __init__(
+        self,
+        src_segment,
+        tgt_segment,
+        alignments,
+        src_lang="en",
+        tgt_lang="nl",
+        use_gpu=True,
+        verbose=0,
+        **kwargs,
+    ):
         super().__init__(alignments, **kwargs)
         self.src_segment = src_segment
         self.src_tokens = src_segment.split()
@@ -30,13 +40,17 @@ class SAC(_Cross):
     @property
     def src_tree(self):
         if self._src_tree is None:
-            self._src_tree = GenericTree.from_string(self.src_segment, lang_or_model=self.src_lang, use_gpu=self.use_gpu)
+            self._src_tree = GenericTree.from_string(
+                self.src_segment, lang_or_model=self.src_lang, use_gpu=self.use_gpu
+            )
         return self._src_tree
 
     @property
     def tgt_tree(self):
         if self._tgt_tree is None:
-            self._tgt_tree = GenericTree.from_string(self.tgt_segment, lang_or_model=self.tgt_lang, use_gpu=self.use_gpu)
+            self._tgt_tree = GenericTree.from_string(
+                self.tgt_segment, lang_or_model=self.tgt_lang, use_gpu=self.use_gpu
+            )
         return self._tgt_tree
 
     @property
@@ -64,8 +78,12 @@ class SAC(_Cross):
             Overwrites the implementation in _Cross because now we know the actual number
             of tokens from the given text, and so we can catch when the last token(s) are not aligned
         """
-        src_missing = [(idx, -1) for idx in range(self.n_src_tokens) if idx not in self.src_idxs]
-        tgt_missing = [(-1, idx) for idx in range(self.n_tgt_tokens) if idx not in self.tgt_idxs]
+        src_missing = [
+            (idx, -1) for idx in range(self.n_src_tokens) if idx not in self.src_idxs
+        ]
+        tgt_missing = [
+            (-1, idx) for idx in range(self.n_tgt_tokens) if idx not in self.tgt_idxs
+        ]
 
         return src_missing + tgt_missing
 
@@ -106,7 +124,7 @@ class SAC(_Cross):
         n_idxs = len(idxs)
         for i in range(n_idxs, 0, -1):
             for j in range(n_idxs - i + 1):
-                r = idxs[j:j+i]
+                r = idxs[j : j + i]
                 if self._is_valid_subtree(r, direction):
                     yield r
 
@@ -146,9 +164,7 @@ class SAC(_Cross):
                     if any(tgt in tgt_idxs_grouped for tgt in tgt_comb):
                         continue
                     # check that this pair of combs does not have external aligns
-                    has_external_aligns = self._has_external_aligns(
-                        src_comb, tgt_comb
-                    )
+                    has_external_aligns = self._has_external_aligns(src_comb, tgt_comb)
 
                     if not has_external_aligns:
                         # Keep track of src+tgt idxs that are already grouped
@@ -162,8 +178,8 @@ class SAC(_Cross):
                         # Break because we have found a suitable group
                         break
 
-        modified_groups = self._add_unsolved_idxs(src_idxs_grouped,
-                                                  tgt_idxs_grouped,
-                                                  modified_groups)
+        modified_groups = self._add_unsolved_idxs(
+            src_idxs_grouped, tgt_idxs_grouped, modified_groups
+        )
 
         return sorted(modified_groups)

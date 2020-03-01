@@ -140,9 +140,9 @@ class _Cross:
         # need to listify the generator because it is in the internal loop
         # the generator would exhaust after the first outer loop, but we need to re-use
         # it for all outer loops, so build a list
-        tgt_combs = list(self._consec_combinations(
-            list(self.tgt2srclist_d.keys()), self.tgt2srclist_d
-        ))
+        tgt_combs = list(
+            self._consec_combinations(list(self.tgt2srclist_d.keys()), self.tgt2srclist_d)
+        )
 
         src_idxs_grouped = set()
         tgt_idxs_grouped = set()
@@ -162,9 +162,7 @@ class _Cross:
                 if any(tgt in tgt_idxs_grouped for tgt in tgt_comb):
                     continue
 
-                has_external_aligns = self._has_external_aligns(
-                    src_comb, tgt_comb
-                )
+                has_external_aligns = self._has_external_aligns(src_comb, tgt_comb)
 
                 # If the src_combo+tgt_combo have no external_aligns, keep going
                 if not has_external_aligns:
@@ -327,7 +325,7 @@ class _Cross:
         n_idxs = len(idxs)
         for i in range(n_idxs, 0, -1):
             for j in range(n_idxs - i + 1):
-                s = idxs[j:j+i]
+                s = idxs[j : j + i]
                 # Do not make combinations with -1 (null), because -1 should always break groups
                 if dir2dirlist_d is not None and (
                     -1 in s or any(-1 in dir2dirlist_d[i] for i in s)

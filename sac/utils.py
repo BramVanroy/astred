@@ -1,8 +1,8 @@
 from copy import deepcopy
 
+import stanfordnlp
 from nltk.draw import TreeView
 from spacy_stanfordnlp import StanfordNLPLanguage
-import stanfordnlp
 from stanfordnlp.utils.resources import DEFAULT_MODEL_DIR
 
 
@@ -28,10 +28,12 @@ def draw_trees(*trees, include_word_idx=False):
 
 def load_nlp(lang_or_model, tokenize_pretokenized=True, use_gpu=True):
     stanfordnlp.download(lang_or_model, DEFAULT_MODEL_DIR)
-    snlp = stanfordnlp.Pipeline(processors='tokenize,pos,depparse',
-                                lang=lang_or_model,
-                                tokenize_pretokenized=tokenize_pretokenized,
-                                use_gpu=use_gpu)
+    snlp = stanfordnlp.Pipeline(
+        processors="tokenize,pos,depparse",
+        lang=lang_or_model,
+        tokenize_pretokenized=tokenize_pretokenized,
+        use_gpu=use_gpu,
+    )
     return StanfordNLPLanguage(snlp)
 
 
