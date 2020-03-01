@@ -178,21 +178,27 @@ class _Cross:
             # combo group, continue
             if any(src in src_idxs_grouped for src in src_comb):
                 continue
+            n_src_items = len(src_comb)
 
             for tgt_comb in tgt_combs:
                 # If any item in this combination has already been grouped in another
                 # combo group, continue
                 if any(tgt in tgt_idxs_grouped for tgt in tgt_comb):
                     continue
-
+                n_tgt_items = len(tgt_comb)
                 has_external_aligns = self._has_external_aligns(src_comb, tgt_comb)
 
                 # If the src_combo+tgt_combo have no external_aligns, keep going
                 if not has_external_aligns:
-                    has_internal_cross = self._has_internal_cross(src_comb)
-                    # only execute _is_mwe if it is allowed
-                    is_mwe = self.group_mwe and self._is_mwe(src_comb, tgt_comb)
+                    has_internal_cross = False
+                    is_mwe = False
+                    if n_src_items > 1 and n_tgt_items > 1:
+                        has_internal_cross = self._has_internal_cross(src_comb)
+                        # only execute _is_mwe if it is allowed
+                        is_mwe = self.group_mwe and self._is_mwe(src_comb, tgt_comb)
+
                     # If the src_combo+tgt_combo have no internal_crosses, they can form a group
+                    # or if they constitute a MWE
                     if not has_internal_cross or is_mwe:
                         # Keep track of src+tgt idxs that are already grouped
                         src_idxs_grouped.update(src_comb)
