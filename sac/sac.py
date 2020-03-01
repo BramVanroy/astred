@@ -137,12 +137,22 @@ class SAC(_Cross):
             # if the group only consists of one src-tgt pair (one tuple)
             # just add it and continue
             if len(group) == 1:
+                src_idxs_grouped.add(group[0][0])
+                tgt_idxs_grouped.add(group[0][1])
                 modified_groups.append(group)
                 continue
 
             group_src_idxs, group_tgt_idxs = zip(*group)
             group_src_idxs = list(set(group_src_idxs))
             group_tgt_idxs = list(set(group_tgt_idxs))
+
+            # don't split existing MWE groups but just add them as one group
+            if self.group_mwe and any(src_idx in self.mwe_src_idxs for src_idx in group_src_idxs):
+                src_idxs_grouped.update(group_src_idxs)
+                tgt_idxs_grouped.update(group_tgt_idxs)
+                modified_groups.append(group)
+                continue
+
             # src_combs and tgt_combs are only valid subtrees, so
             # they are not ALL combinations
             src_combs = self._valid_subtree_combs(group_src_idxs, "src")

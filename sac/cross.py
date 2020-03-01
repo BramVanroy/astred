@@ -5,13 +5,10 @@ from .utils import aligns_from_str, aligns_to_str
 
 
 class _Cross:
-    def __init__(self, alignments, allow_mwe=False):
+    def __init__(self, alignments, group_mwe=False):
         self.aligns = aligns_from_str(alignments)
         self.src_idxs, self.tgt_idxs = zip(*self.aligns)
-        self.allow_mwe = allow_mwe
-
-        if allow_mwe:
-            raise NotImplementedError("Even though a cool idea, this is not implemented yet.")
+        self.group_mwe = group_mwe
 
         # Only do computationally heavy calculations when
         # the property is actually required
@@ -26,12 +23,11 @@ class _Cross:
         self._tgt2aligns_d = None
         self._src2tgtlist_d = None
         self._tgt2srclist_d = None
-        self._mwe_groups = None
-        self._mwe_src_group_to_tgt_group = None
 
-    @property
-    def mwe_src_group_to_tgt_group(self):
-        raise NotImplementedError()
+        self._mwe_groups = None
+        self._mwe_src_idxs = None
+        self._mwe_tgt_idxs = None
+
 
     @property
     def aligns_w_null(self):
@@ -40,7 +36,34 @@ class _Cross:
         return self._aligns_w_null
 
     @property
+    def mwe_src_idxs(self):
+        if self._mwe_src_idxs is None:
+            src, tgt = set(), set()
+            for group in self.mwe_groups:
+                src_idxs, tgt_idxs = zip(*group)
+                src.update(src_idxs)
+                tgt.update(tgt_idxs)
+            self._mwe_src_idxs = src
+            self._mwe_tgt_idxs = tgt
+        return self._mwe_src_idxs
+
+    @property
+    def mwe_tgt_idxs(self):
+        if self._mwe_tgt_idxs is None:
+            src, tgt = set(), set()
+            for group in self.mwe_groups:
+                src_idxs, tgt_idxs = zip(*group)
+                src.update(src_idxs)
+                tgt.update(tgt_idxs)
+            self._mwe_src_idxs = src
+            self._mwe_tgt_idxs = tgt
+        return self._mwe_tgt_idxs
+
+    @property
     def mwe_groups(self):
+        if self._mwe_groups is None:
+            # trigger grouping, which sets mwe_groups
+            self._seq_groups, self._mwe_groups = self._word_align_to_groups()
         return self._mwe_groups
 
     @property
@@ -64,7 +87,7 @@ class _Cross:
     @property
     def seq_groups(self):
         if self._seq_groups is None:
-            self._seq_groups = self._word_align_to_groups()
+            self._seq_groups, self._mwe_groups = self._word_align_to_groups()
         return self._seq_groups
 
     @property
@@ -168,7 +191,7 @@ class _Cross:
                 if not has_external_aligns:
                     has_internal_cross = self._has_internal_cross(src_comb)
                     # only execute _is_mwe if it is allowed
-                    is_mwe = self.allow_mwe and self._is_mwe(src_comb, tgt_comb)
+                    is_mwe = self.group_mwe and self._is_mwe(src_comb, tgt_comb)
                     # If the src_combo+tgt_combo have no internal_crosses, they can form a group
                     if not has_internal_cross or is_mwe:
                         # Keep track of src+tgt idxs that are already grouped
@@ -185,9 +208,8 @@ class _Cross:
                         break
 
         groups = self._add_unsolved_idxs(src_idxs_grouped, tgt_idxs_grouped, groups)
-        self._mwe_groups = mwe_groups
 
-        return sorted(groups)
+        return sorted(groups), mwe_groups
 
     def _add_unsolved_idxs(self, src_idxs_grouped, tgt_idxs_grouped, groups):
         """ Manually checking if all alignments are grouped, and if not: adding as
