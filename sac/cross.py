@@ -1,8 +1,10 @@
 from collections import defaultdict
 from itertools import combinations
 
+from .utils import aligns_from_str, aligns_to_str
 
-class Cross:
+
+class _Cross:
     def __init__(self, alignments, allow_mwe=False):
         self.aligns = aligns_from_str(alignments)
         self.src_idxs, self.tgt_idxs = zip(*self.aligns)
@@ -16,6 +18,7 @@ class Cross:
         self._aligns_w_null = None
         self._cross = None
         self._null_aligns = None
+        self._n_null_aligns = None
         self._seq_aligns = None
         self._seq_cross = None
         self._seq_groups = None
@@ -69,6 +72,12 @@ class Cross:
         if self._null_aligns is None:
             self._null_aligns = self._get_null_aligns()
         return self._null_aligns
+
+    @property
+    def n_null_aligns(self):
+        if self._n_null_aligns is None:
+            self._n_null_aligns = len(self.null_aligns)
+        return self._n_null_aligns
 
     @property
     def seq_aligns(self):
@@ -347,12 +356,3 @@ class Cross:
                 return False
 
         return True
-
-
-def aligns_from_str(aligns):
-    return sorted([tuple(map(int, align.split("-"))) for align in aligns.split()])
-
-
-def aligns_to_str(aligns):
-    """ Convert list of alignments (tuple of src, tgt) to GIZA/Pharaoh string """
-    return " ".join([f"{s}-{t}" for s, t in aligns])

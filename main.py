@@ -1,18 +1,19 @@
-from sac import Cross, SAC, aligns_to_str
-from nltk.draw import draw_trees
+from sac import AlignedTrees
+from sac.utils import draw_trees
+
 
 def main(*args):
-    sac = SAC(*args)
+    aligned = AlignedTrees(*args)
+    # draw_trees(aligner.merged_src_tree, aligner.src_tree, include_word_idx=True)
+    print(aligned.merged_src_tree)
+    print(aligned.src_tree)
+    print(aligned.ted)
+    print(aligned.astred)
+    print(aligned.n_null_aligns)
+    print(aligned.label_changes)
 
-    print()
-    print("SAC WORD ALIGN", aligns_to_str(sac.aligns))
-    print("SAC GROUPS", sac.groups)
-    # print("SAC SEQ ALIGN", aligns_to_str(sac.seq_aligns))
-    new_groups = sac.regroup_by_subtrees()
-    print(new_groups)
-    draw_trees(sac.src_tree, sac.tgt_tree)
 
 if __name__ == "__main__":
-    main("0-0 1-1 3-2 4-3 5-7 6-7 7-7 8-4 9-5 10-6",
-         "She asked me why I used to call her father Harold",
-         "Ze vroeg waarom ik haar vader Harold noemde .")
+    main("She asked me why I used to call her father Harold",
+         "Ze vroeg waarom ik haar vader Harold noemde .",
+         "0-0 1-1 3-2 4-3 5-7 6-7 7-7 8-4 9-5 10-6")

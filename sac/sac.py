@@ -1,24 +1,43 @@
-from astred import GenericTree
+from .cross import _Cross
+from .tree import GenericTree
+from .utils import aligns_to_str
 
-from . import Cross, aligns_to_str
 
-
-class SAC(Cross):
-    def __init__(self, alignments, src_text, tgt_text, src_lang="en", tgt_lang="nl", use_gpu=True, **kwargs):
-        super(SAC, self).__init__(alignments, **kwargs)
-        self.src_text = src_text
-        self.src_tokens = src_text.split()
+class SAC(_Cross):
+    def __init__(self, src_segment, tgt_segment, alignments, src_lang="en", tgt_lang="nl", use_gpu=True, verbose=0, **kwargs):
+        super().__init__(alignments, **kwargs)
+        self.src_segment = src_segment
+        self.src_tokens = src_segment.split()
         self.n_src_tokens = len(self.src_tokens)
-        self.tgt_text = tgt_text
-        self.tgt_tokens = tgt_text.split()
+        self.tgt_segment = tgt_segment
+        self.tgt_tokens = tgt_segment.split()
         self.n_tgt_tokens = len(self.tgt_tokens)
 
-        self.src_tree = GenericTree.from_string(src_text, lang_or_model=src_lang, use_gpu=use_gpu)
-        self.tgt_tree = GenericTree.from_string(tgt_text, lang_or_model=tgt_lang, use_gpu=use_gpu)
+        self.src_lang = src_lang
+        self.tgt_lang = tgt_lang
+        self.use_gpu = use_gpu
+
+        # for performance reasons, only init trees when we need them
+        self._src_tree = None
+        self._tgt_tree = None
 
         self._sac_aligns = None
         self._sac_cross = None
         self._sac_groups = None
+
+        self.verbose = verbose
+
+    @property
+    def src_tree(self):
+        if self._src_tree is None:
+            self._src_tree = GenericTree.from_string(self.src_segment, lang_or_model=self.src_lang, use_gpu=self.use_gpu)
+        return self._src_tree
+
+    @property
+    def tgt_tree(self):
+        if self._tgt_tree is None:
+            self._tgt_tree = GenericTree.from_string(self.tgt_segment, lang_or_model=self.tgt_lang, use_gpu=self.use_gpu)
+        return self._tgt_tree
 
     @property
     def sac_aligns(self):
@@ -38,26 +57,21 @@ class SAC(Cross):
             self._sac_groups = self.regroup_by_subtrees()
         return self._sac_groups
 
-    @classmethod
-    def from_list(cls, align_list, *args, **kwargs):
-        return cls(aligns_to_str(align_list), *args, **kwargs)
-
     def _get_null_aligns(self):
         """ Get missing idxs (= null alignments) and return them as alignments to -1.
             We use -1 so that we can still order our lists containing null alignments.
             Expects SORTED input lists.
-            Overwrites naive implementation in cross which doesn't take actual n_tokens
-            into account.
+            Overwrites the implementation in _Cross because now we know the actual number
+            of tokens from the given text, and so we can catch when the last token(s) are not aligned
         """
-
-        def missing_idxs(idxs, n_max):
-            idxs = set(idxs)
-            return [i for i in range(n_max) if i not in idxs]
-
-        src_missing = [(idx, -1) for idx in missing_idxs(self.src_idxs, self.n_src_tokens)]
-        tgt_missing = [(-1, idx) for idx in missing_idxs(self.tgt_idxs, self.n_tgt_tokens)]
+        src_missing = [(idx, -1) for idx in range(self.n_src_tokens) if idx not in self.src_idxs]
+        tgt_missing = [(-1, idx) for idx in range(self.n_tgt_tokens) if idx not in self.tgt_idxs]
 
         return src_missing + tgt_missing
+
+    @classmethod
+    def from_list(cls, align_list, *args, **kwargs):
+        return cls(aligns_to_str(align_list), *args, **kwargs)
 
     def _is_valid_subtree(self, idxs, direction):
         """ valid subtrees need to all be connected. That means that
