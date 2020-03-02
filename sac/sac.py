@@ -5,14 +5,14 @@ from .utils import aligns_to_str
 
 class SAC(_Cross):
     def __init__(
-        self,
-        src_segment,
-        tgt_segment,
-        alignments,
-        src_lang="en",
-        tgt_lang="nl",
-        use_gpu=True,
-        **kwargs,
+            self,
+            src_segment,
+            tgt_segment,
+            alignments,
+            src_lang="en",
+            tgt_lang="nl",
+            use_gpu=True,
+            **kwargs,
     ):
         super().__init__(alignments, **kwargs)
         self.src_segment = src_segment
@@ -34,9 +34,6 @@ class SAC(_Cross):
         self._sac_cross = None
         self._sac_groups = None
 
-        self._sac_mwe_groups = None
-        self._sac_mwe_src_idxs = None
-        self._sac_mwe_tgt_idxs = None
 
     @property
     def src_tree(self):
@@ -71,36 +68,6 @@ class SAC(_Cross):
         if self._sac_groups is None:
             self._sac_groups, self._sac_mwe_groups = self.regroup_by_subtrees()
         return self._sac_groups
-
-    @property
-    def sac_mwe_groups(self):
-        if self._sac_mwe_groups is None:
-            self._sac_groups, self._sac_mwe_groups = self.regroup_by_subtrees()
-        return self._sac_mwe_groups
-
-    @property
-    def sac_mwe_src_idxs(self):
-        if self._sac_mwe_src_idxs is None:
-            src, tgt = set(), set()
-            for group in self.sac_mwe_groups:
-                src_idxs, tgt_idxs = zip(*group)
-                src.update(src_idxs)
-                tgt.update(tgt_idxs)
-            self._sac_mwe_src_idxs = src
-            self._sac_mwe_tgt_idxs = tgt
-        return self._sac_mwe_src_idxs
-
-    @property
-    def sac_mwe_tgt_idxs(self):
-        if self._sac_mwe_tgt_idxs is None:
-            src, tgt = set(), set()
-            for group in self.sac_mwe_groups:
-                src_idxs, tgt_idxs = zip(*group)
-                src.update(src_idxs)
-                tgt.update(tgt_idxs)
-            self._sac_mwe_src_idxs = src
-            self._sac_mwe_tgt_idxs = tgt
-        return self._sac_mwe_tgt_idxs
 
     def _get_null_aligns(self):
         """ Get missing idxs (= null alignments) and return them as alignments to -1.
@@ -155,6 +122,8 @@ class SAC(_Cross):
         src_idxs_grouped = set()
         tgt_idxs_grouped = set()
 
+        # we don't have to check for internal crosses here,
+        # because these groups are already selected for that
         for group in self.seq_groups:
             # if the group only consists of one src-tgt pair (one tuple)
             # just add it and continue
@@ -168,7 +137,7 @@ class SAC(_Cross):
 
             # don't split existing MWE groups but just add them as one group
             if self.group_mwe and any(
-                src_idx in self.seq_mwe_src_idxs for src_idx in group_src_idxs
+                    src_idx in self.mwe_src_idxs for src_idx in group_src_idxs
             ):
                 src_idxs_grouped.update(group_src_idxs)
                 tgt_idxs_grouped.update(group_tgt_idxs)
@@ -195,33 +164,28 @@ class SAC(_Cross):
                     if any(tgt in tgt_idxs_grouped for tgt in tgt_comb):
                         continue
 
-                    # check that this pair of combs does not have external aligns
-                    has_external_aligns = self._has_external_aligns(src_comb, tgt_comb)
+                    n_tgt_items = len(tgt_comb)
+                    is_mwe = False
+                    if n_src_items > 1 and n_tgt_items > 1:
+                        is_mwe = self.group_mwe and self._is_in_mwe(src_comb, tgt_comb)
 
-                    if not has_external_aligns:
-                        n_tgt_items = len(tgt_comb)
-                        is_mwe = False
-                        if n_src_items > 1 and n_tgt_items > 1:
-                            # only execute _is_mwe if it is allowed
-                            is_mwe = self.group_mwe and self._is_mwe(src_comb, tgt_comb)
-
-                        # if a combination is a valid MWE, don't split them up based on subtrees
-                        if is_mwe or (
-                            self._is_valid_subtree(src_comb, "src")
-                            and self._is_valid_subtree(tgt_comb, "tgt")
-                        ):
-                            # Keep track of src+tgt idxs that are already grouped
-                            src_idxs_grouped.update(src_comb)
-                            tgt_idxs_grouped.update(tgt_comb)
-                            # Get all alignments of this group and add them as group
-                            alignments_of_group = [
-                                i for src in src_comb for i in self.src2aligns_d[src]
-                            ]
-                            modified_groups.append(alignments_of_group)
-                            if is_mwe:
-                                mwe_groups.append(alignments_of_group)
-                            # Break because we have found a suitable group
-                            break
+                    # if a combination is a valid MWE, don't split them up based on subtrees
+                    if is_mwe or (not self._has_external_aligns(src_comb, tgt_comb) and
+                                  self._is_valid_subtree(src_comb, "src")
+                                  and self._is_valid_subtree(tgt_comb, "tgt")
+                    ):
+                        # Keep track of src+tgt idxs that are already grouped
+                        src_idxs_grouped.update(src_comb)
+                        tgt_idxs_grouped.update(tgt_comb)
+                        # Get all alignments of this group and add them as group
+                        alignments_of_group = sorted([
+                            i for src in src_comb for i in self.src2aligns_d[src]
+                        ])
+                        modified_groups.append(alignments_of_group)
+                        if is_mwe:
+                            mwe_groups.append(alignments_of_group)
+                        # Break because we have found a suitable group
+                        break
 
         modified_groups = self._add_unsolved_idxs(
             src_idxs_grouped, tgt_idxs_grouped, modified_groups

@@ -24,9 +24,9 @@ class _Cross:
         self._src2tgtlist_d = None
         self._tgt2srclist_d = None
 
-        self._seq_mwe_groups = None
-        self._seq_mwe_src_idxs = None
-        self._seq_mwe_tgt_idxs = None
+        self._mwe_groups = None
+        self._mwe_src_idxs = None
+        self._mwe_tgt_idxs = None
 
     @property
     def aligns_w_null(self):
@@ -35,35 +35,34 @@ class _Cross:
         return self._aligns_w_null
 
     @property
-    def seq_mwe_src_idxs(self):
-        if self._seq_mwe_src_idxs is None:
+    def mwe_src_idxs(self):
+        if self._mwe_src_idxs is None:
             src, tgt = set(), set()
-            for group in self.seq_mwe_groups:
+            for group in self.mwe_groups:
                 src_idxs, tgt_idxs = zip(*group)
                 src.update(src_idxs)
                 tgt.update(tgt_idxs)
-            self._seq_mwe_src_idxs = src
-            self._seq_mwe_tgt_idxs = tgt
-        return self._seq_mwe_src_idxs
+            self._mwe_src_idxs = src
+            self._mwe_tgt_idxs = tgt
+        return self._mwe_src_idxs
 
     @property
-    def seq_mwe_tgt_idxs(self):
-        if self._seq_mwe_tgt_idxs is None:
+    def mwe_tgt_idxs(self):
+        if self._mwe_tgt_idxs is None:
             src, tgt = set(), set()
-            for group in self.seq_mwe_groups:
+            for group in self.mwe_groups:
                 src_idxs, tgt_idxs = zip(*group)
                 src.update(src_idxs)
                 tgt.update(tgt_idxs)
-            self._seq_mwe_src_idxs = src
-            self._seq_mwe_tgt_idxs = tgt
-        return self._seq_mwe_tgt_idxs
+            self._mwe_src_idxs = src
+            self._mwe_tgt_idxs = tgt
+        return self._mwe_tgt_idxs
 
     @property
-    def seq_mwe_groups(self):
-        if self._seq_mwe_groups is None:
-            # trigger grouping, which sets mwe_groups
-            self._seq_groups, self._seq_mwe_groups = self._word_align_to_groups()
-        return self._seq_mwe_groups
+    def mwe_groups(self):
+        if self._mwe_groups is None:
+            self._mwe_groups = self._find_mwe()
+        return self._mwe_groups
 
     @property
     def src2aligns_d(self):
@@ -86,7 +85,7 @@ class _Cross:
     @property
     def seq_groups(self):
         if self._seq_groups is None:
-            self._seq_groups, self._seq_mwe_groups = self._word_align_to_groups()
+            self._seq_groups = self._word_align_to_groups()
         return self._seq_groups
 
     @property
@@ -133,6 +132,60 @@ class _Cross:
     def from_list(cls, align_list, *args, **kwargs):
         return cls(aligns_to_str(align_list))
 
+    def _find_mwe(self):
+        # MWE can only exist between src and target that both have more than one element
+        # That means that we do not catch one-to-many, many-to-one because that would be
+        # too broad and have too many false positives
+        src_combs = self._consec_combinations(
+            list(self.src2tgtlist_d.keys()),
+            self.src2tgtlist_d,
+            min_size=2
+        )
+
+        # need to listify the generator because it is in the internal loop
+        # the generator would exhaust after the first outer loop, but we need to re-use
+        # it for all outer loops, so build a list
+        tgt_combs = list(
+            self._consec_combinations(
+                list(self.tgt2srclist_d.keys()),
+                self.tgt2srclist_d,
+                min_size=2)
+        )
+
+        src_idxs_grouped = set()
+        tgt_idxs_grouped = set()
+        mwe_groups = []
+
+        # Try grouping a src_comb with a tgt_comb
+        for src_comb in src_combs:
+            # If any item in this combination has already been grouped in another
+            # combo group, continue
+            if any(src in src_idxs_grouped for src in src_comb):
+                continue
+
+            for tgt_comb in tgt_combs:
+                # If any item in this combination has already been grouped in another
+                # combo group, continue
+                if any(tgt in tgt_idxs_grouped for tgt in tgt_comb):
+                    continue
+
+                if self._is_mwe(src_comb, tgt_comb):
+                    # Keep track of src+tgt idxs that are already grouped
+                    src_idxs_grouped.update(src_comb)
+                    tgt_idxs_grouped.update(tgt_comb)
+
+                    mwe_groups.append((src_comb, tgt_comb))
+                    # Break because we have found a suitable group
+                    break
+
+        return mwe_groups
+
+    def _is_in_mwe(self, src_comb, tgt_comb):
+        for src_idxs, tgt_idxs in self.mwe_groups:
+            if src_idxs == src_comb and tgt_idxs == tgt_comb:
+                return True
+        return False
+
     def _word_align_to_groups(self):
         """ Get all possible combinations of src_idxs and tgt_idxs (min_size=2), and find
             groups between these src/tgt combos so that the following requirements are met for
@@ -169,7 +222,6 @@ class _Cross:
         src_idxs_grouped = set()
         tgt_idxs_grouped = set()
         groups = []
-        mwe_groups = []
 
         # Try grouping a src_comb with a tgt_comb
         for src_comb in src_combs:
@@ -178,46 +230,39 @@ class _Cross:
             if any(src in src_idxs_grouped for src in src_comb):
                 continue
             n_src_items = len(src_comb)
+            # only calculate internal_cross once for src_comb
+            has_internal_cross = self._has_internal_cross(src_comb)
 
             for tgt_comb in tgt_combs:
                 # If any item in this combination has already been grouped in another
                 # combo group, continue
                 if any(tgt in tgt_idxs_grouped for tgt in tgt_comb):
                     continue
+
                 n_tgt_items = len(tgt_comb)
-                has_external_aligns = self._has_external_aligns(src_comb, tgt_comb)
+                is_mwe = False
+                if n_src_items > 1 and n_tgt_items > 1:
+                    is_mwe = self.group_mwe and self._is_in_mwe(src_comb, tgt_comb)
 
-                # If the src_combo+tgt_combo have no external_aligns, keep going
-                if not has_external_aligns:
-                    valid_combs = True
-                    is_mwe = False
-                    if n_src_items > 1 and n_tgt_items > 1:
-                        # only execute _is_mwe if it is allowed
-                        is_mwe = self.group_mwe and self._is_mwe(src_comb, tgt_comb)
-                        valid_combs = is_mwe
-                        # only test for internal cross if we don't have a MWE
-                        if not valid_combs:
-                            valid_combs = not self._has_internal_cross(src_comb)
+                # If the src_combo+tgt_combo is a MWE or (it has no external aligns and
+                # no internal crosses): go on
+                if is_mwe or (not self._has_external_aligns(src_comb, tgt_comb)
+                              and not has_internal_cross):
+                    # Keep track of src+tgt idxs that are already grouped
+                    src_idxs_grouped.update(src_comb)
+                    tgt_idxs_grouped.update(tgt_comb)
+                    # Get all alignments of this group and add them as group
+                    alignments_of_group = sorted([
+                        i for src in src_comb for i in self.src2aligns_d[src]
+                    ])
 
-                    # If the src_combo+tgt_combo both contain one item, OR if they are a MWE,
-                    # OR if they have no internal crosses, they are valid
-                    if valid_combs:
-                        # Keep track of src+tgt idxs that are already grouped
-                        src_idxs_grouped.update(src_comb)
-                        tgt_idxs_grouped.update(tgt_comb)
-                        # Get all alignments of this group and add them as group
-                        alignments_of_group = [
-                            i for src in src_comb for i in self.src2aligns_d[src]
-                        ]
-                        groups.append(alignments_of_group)
-                        if is_mwe:
-                            mwe_groups.append(alignments_of_group)
-                        # Break because we have found a suitable group
-                        break
+                    groups.append(alignments_of_group)
+                    # Break because we have found a suitable group
+                    break
 
         groups = self._add_unsolved_idxs(src_idxs_grouped, tgt_idxs_grouped, groups)
 
-        return sorted(groups), mwe_groups
+        return sorted(groups)
 
     def _add_unsolved_idxs(self, src_idxs_grouped, tgt_idxs_grouped, groups):
         """ Manually checking if all alignments are grouped, and if not: adding as
@@ -342,7 +387,7 @@ class _Cross:
         return src_missing + tgt_missing
 
     @staticmethod
-    def _consec_combinations(idxs, dir2dirlist_d=None):
+    def _consec_combinations(idxs, dir2dirlist_d=None, min_size=1):
         """ Get all consequtive combinations of idxs of all possible lengths.
             When getting consecutive combinations in cross, we want to split on -1 (null),
             but when getting consec groups in SAC, we already have groups without -1, so
@@ -350,12 +395,12 @@ class _Cross:
             Returns largest possible groups first and decreases in length """
         idxs.sort()
         n_idxs = len(idxs)
-        for i in range(n_idxs, 0, -1):
+        for i in range(n_idxs, min_size - 1, -1):
             for j in range(n_idxs - i + 1):
-                s = idxs[j : j + i]
+                s = set(idxs[j: j + i])
                 # Do not make combinations with -1 (null), because -1 should always break groups
                 if dir2dirlist_d is not None and (
-                    -1 in s or any(-1 in dir2dirlist_d[i] for i in s)
+                        -1 in s or any(-1 in dir2dirlist_d[i] for i in s)
                 ):
                     continue
                 yield s
@@ -379,7 +424,8 @@ class _Cross:
             that would be too broad.
             """
         for src_idx in src_comb:
-            if any(tgt_idx not in self._src2tgtlist_d[src_idx] for tgt_idx in tgt_comb):
+            if any(tgt_idx not in self._src2tgtlist_d[src_idx] for tgt_idx in
+                   tgt_comb) or self._has_external_aligns(src_comb, tgt_comb):
                 return False
 
         return True
