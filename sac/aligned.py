@@ -23,6 +23,7 @@ class ASTrED(SAC):
     --------
     SAC : `ASTrED`'s super class
     """
+
     def __init__(self, src_segment, tgt_segment, alignments, **kwargs):
         super().__init__(src_segment, tgt_segment, alignments, **kwargs)
 

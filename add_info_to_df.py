@@ -121,3 +121,5 @@ if __name__ == '__main__':
             " to the number of processes")
 
     main(cargs)
+    # 100%|██████████| 30/30 [09:15<00:00, 18.50s/split]
+    # 100%|██████████| 30/30 [05:27<00:00, 10.93s/split]
