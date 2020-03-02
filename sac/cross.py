@@ -28,7 +28,6 @@ class _Cross:
         self._mwe_src_idxs = None
         self._mwe_tgt_idxs = None
 
-
     @property
     def aligns_w_null(self):
         if self._aligns_w_null is None:
@@ -376,7 +375,10 @@ class _Cross:
 
     def _is_mwe(self, src_comb, tgt_comb):
         """ If all source items are connected to all target items, we assume that this is
-            a segment that is likely to be a multi-word expression. """
+            a segment that is likely to be a multi-word expression.
+            We do NOT count one-to-many or many-to-one alignments as MWE because
+            that would be too broad.
+            """
         for src_idx in src_comb:
             if any(tgt_idx not in self._src2tgtlist_d[src_idx] for tgt_idx in tgt_comb):
                 return False

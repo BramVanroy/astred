@@ -1,10 +1,10 @@
-from sac import AlignedTrees
+from sac import ASTrED
 from sac.utils import draw_trees
 
 
 def main(*args):
-    aligned = AlignedTrees(*args)
-    aligned_mwe = AlignedTrees(*args, group_mwe=True)
+    aligned = ASTrED(*args)
+    aligned_mwe = ASTrED(*args, group_mwe=True)
     # draw_trees(aligner.merged_src_tree, aligner.src_tree, include_word_idx=True)
     print(aligned.seq_cross)
     print(aligned_mwe.seq_cross)

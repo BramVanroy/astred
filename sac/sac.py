@@ -147,7 +147,9 @@ class SAC(_Cross):
             group_tgt_idxs = list(set(group_tgt_idxs))
 
             # don't split existing MWE groups but just add them as one group
-            if self.group_mwe and any(src_idx in self.mwe_src_idxs for src_idx in group_src_idxs):
+            if self.group_mwe and any(
+                src_idx in self.mwe_src_idxs for src_idx in group_src_idxs
+            ):
                 src_idxs_grouped.update(group_src_idxs)
                 tgt_idxs_grouped.update(group_tgt_idxs)
                 modified_groups.append(group)

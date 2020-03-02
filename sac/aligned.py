@@ -5,7 +5,24 @@ from apted import APTED, helpers
 from .sac import SAC
 
 
-class AlignedTrees(SAC):
+class ASTrED(SAC):
+    """
+
+    Parameters
+    ----------
+    src_segment : str
+        The tokenized source string
+    tgt_segment : str
+        The tokenized target string
+    alignments : str
+        The word alignments, in GIZA format
+    kwargs
+        Additional keyword arguments that will be passed to the super class `SAC`
+
+    See Also
+    --------
+    SAC : `ASTrED`'s super class
+    """
     def __init__(self, src_segment, tgt_segment, alignments, **kwargs):
         super().__init__(src_segment, tgt_segment, alignments, **kwargs)
 
@@ -168,7 +185,6 @@ class AlignedTrees(SAC):
     @staticmethod
     def _get_distance(src_tree, tgt_tree):
         """ Calculate the distance between the source and target tree.
-        :param return_operations: return the tree edit operations, if not: opts=None
         :return: the tree edit distance for the given trees and optionally the required operations
         """
         src_tree_str = src_tree.to_string(parens="{}")
@@ -185,15 +201,26 @@ class AlignedTrees(SAC):
     @staticmethod
     def directional_n_changes(align_map, label_map1, label_map2, method="default"):
         """
-        :param align_map: an alignment map of the tokens of one side and the items on the other side that they are
+
+        Parameters
+        ----------
+        align_map
+            an alignment map of the tokens of one side and the items on the other side that they are
         aligned with, e.g. {0: [0], 1: [1, 2]}
-        :param label_map1: map of token IDs to their corresponding label, e.g. {0: 'src_det-1', 1: 'src_amod-1'}
-        :param label_map2: map of token IDs to their corresponding label, e.g. {0: 'src_det-1', 1: 'src_amod-1'}
-        :param method: method to calculate the number of label changes. Must be one of 'default', 'token_avg',
+        label_map1
+             map of token IDs to their corresponding label, e.g. {0: 'src_det-1', 1: 'src_amod-1'}
+        label_map2
+            map of token IDs to their corresponding label, e.g. {0: 'src_det-1', 1: 'src_amod-1'}
+        method
+            method to calculate the number of label changes. Must be one of 'default', 'token_avg',
         'overlap'. Default calculates the differences in label changes in a one-on-one manner. Token_avg checks
         how many items on average have changed label during alignment. Overlap only counts those changes where
         all aligned items have different labels than the original.
-        :return: the number of changes according to 'method'
+
+        Returns
+        -------
+        the number of changes according to `method`
+
         """
         n_changes = 0
         for idx, dir_idxs in align_map.items():
@@ -285,7 +312,7 @@ class AlignedTrees(SAC):
             # For each group, get the source indices
             # Then for each source index, get its target indices
             # Convert all indices to labels
-            # Output should be dict of src_idx: [tgt_idxs]
+            # Output is dict of src_idx: [tgt_idxs]
             group_mapping = {
                 item: mod_src2tgtlist_d[item] for item in group if item.startswith("src_")
             }
