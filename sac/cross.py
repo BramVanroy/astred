@@ -38,8 +38,7 @@ class _Cross:
     def mwe_src_idxs(self):
         if self._mwe_src_idxs is None:
             src, tgt = set(), set()
-            for group in self.mwe_groups:
-                src_idxs, tgt_idxs = zip(*group)
+            for src_idxs, tgt_idxs in self.mwe_groups:
                 src.update(src_idxs)
                 tgt.update(tgt_idxs)
             self._mwe_src_idxs = src
@@ -50,8 +49,7 @@ class _Cross:
     def mwe_tgt_idxs(self):
         if self._mwe_tgt_idxs is None:
             src, tgt = set(), set()
-            for group in self.mwe_groups:
-                src_idxs, tgt_idxs = zip(*group)
+            for src_idxs, tgt_idxs in self.mwe_groups:
                 src.update(src_idxs)
                 tgt.update(tgt_idxs)
             self._mwe_src_idxs = src

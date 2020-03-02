@@ -135,15 +135,6 @@ class SAC(_Cross):
 
             group_src_idxs, group_tgt_idxs = self._get_src_tgt_idxs(group)
 
-            # don't split existing MWE groups but just add them as one group
-            if self.group_mwe and any(
-                    src_idx in self.mwe_src_idxs for src_idx in group_src_idxs
-            ):
-                src_idxs_grouped.update(group_src_idxs)
-                tgt_idxs_grouped.update(group_tgt_idxs)
-                modified_groups.append(group)
-                continue
-
             src_combs = self._consec_combinations(group_src_idxs)
             # need to listify the generator because it is in the internal loop
             # the generator would exhaust after the first outer loop, but we need to re-use
