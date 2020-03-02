@@ -30,8 +30,8 @@ def process_astred_cross(r, use_gpu=True):
         'n_src_tokens': astred.n_src_tokens,
         'n_tgt_tokens': astred.n_tgt_tokens,
         'n_null_aligns': astred.n_null_aligns,
-        'ted': astred.ted,  # regular tree edit distance
-        'astred': astred.astred  # tree edit distance using the merged trees
+        'ted': astred.ted[0],  # regular tree edit distance
+        'astred': astred.astred[0]  # tree edit distance using the merged trees
     }
 
     for change_type, change_d in astred.label_changes.items():
