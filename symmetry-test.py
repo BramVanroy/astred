@@ -1,4 +1,4 @@
-from sac import aligns_from_str, SAC
+from sacr import aligns_from_str, SAC
 import pandas as pd
 
 from multiprocessing import Pool
