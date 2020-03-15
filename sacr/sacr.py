@@ -1,14 +1,13 @@
 from .cross import _Cross
 from .tree import GenericTree
-from .utils import aligns_to_str
 
 
-class SAC(_Cross):
+class SACr(_Cross):
     def __init__(
             self,
+            alignments,
             src_segment,
             tgt_segment,
-            alignments,
             src_lang="en",
             tgt_lang="nl",
             use_gpu=True,
@@ -17,10 +16,8 @@ class SAC(_Cross):
         super().__init__(alignments, **kwargs)
         self.src_segment = src_segment
         self.src_tokens = src_segment.split()
-        self.n_src_tokens = len(self.src_tokens)
         self.tgt_segment = tgt_segment
         self.tgt_tokens = tgt_segment.split()
-        self.n_tgt_tokens = len(self.tgt_tokens)
 
         self.src_lang = src_lang
         self.tgt_lang = tgt_lang
@@ -30,10 +27,28 @@ class SAC(_Cross):
         self._src_tree = None
         self._tgt_tree = None
 
-        self._sac_aligns = None
-        self._sac_cross = None
-        self._sac_groups = None
+        self._sacr_aligns = None
+        self._sacr_cross = None
+        self._sacr_groups = None
+        self._sacr_mwe_groups = None
 
+    @property
+    def sacr_aligns(self):
+        if self._sacr_aligns is None:
+            self._sacr_aligns = self._groups_to_align(self.sacr_groups)
+        return self._sacr_aligns
+
+    @property
+    def sacr_cross(self):
+        if self._sacr_cross is None:
+            self._sacr_cross = self._get_cross(self.sacr_aligns)
+        return self._sacr_cross
+
+    @property
+    def sacr_groups(self):
+        if self._sacr_groups is None:
+            self._sacr_groups, self._sacr_mwe_groups = self._regroup_by_subtrees()
+        return self._sacr_groups
 
     @property
     def src_tree(self):
@@ -51,24 +66,6 @@ class SAC(_Cross):
             )
         return self._tgt_tree
 
-    @property
-    def sac_aligns(self):
-        if self._sac_aligns is None:
-            self._sac_aligns = self._groups_to_align(self.sac_groups)
-        return self._sac_aligns
-
-    @property
-    def sac_cross(self):
-        if self._sac_cross is None:
-            self._sac_cross = self.get_cross(self.sac_aligns)
-        return self._sac_cross
-
-    @property
-    def sac_groups(self):
-        if self._sac_groups is None:
-            self._sac_groups, self._sac_mwe_groups = self.regroup_by_subtrees()
-        return self._sac_groups
-
     def _get_null_aligns(self):
         """ Get missing idxs (= null alignments) and return them as alignments to -1.
             We use -1 so that we can still order our lists containing null alignments.
@@ -84,10 +81,6 @@ class SAC(_Cross):
         ]
 
         return src_missing + tgt_missing
-
-    @classmethod
-    def from_list(cls, align_list, *args, **kwargs):
-        return cls(aligns_to_str(align_list), *args, **kwargs)
 
     def _is_valid_subtree(self, idxs, direction):
         """ valid subtrees need to all be connected. That means that
@@ -116,7 +109,7 @@ class SAC(_Cross):
 
         return True
 
-    def regroup_by_subtrees(self):
+    def _regroup_by_subtrees(self):
         mwe_groups = []
         modified_groups = []
         src_idxs_grouped = set()
@@ -128,8 +121,8 @@ class SAC(_Cross):
             # if the group only consists of one src-tgt pair (one tuple)
             # just add it and continue
             if len(group) == 1:
-                src_idxs_grouped.add(group[0][0])
-                tgt_idxs_grouped.add(group[0][1])
+                src_idxs_grouped.add(group[0].src)
+                tgt_idxs_grouped.add(group[0].tgt)
                 modified_groups.append(group)
                 continue
 

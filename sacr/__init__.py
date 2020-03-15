@@ -1,3 +1,3 @@
-from .aligned import ASTrED
-from .sac import SAC
+from .astred import ASTrED
+from .sacr import SACr
 from .tree import GenericTree

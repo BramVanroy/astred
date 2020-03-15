@@ -1,12 +1,25 @@
 from copy import deepcopy
+from typing import List, NamedTuple, Tuple, Union
 
 import stanfordnlp
+from nltk.tree import ParentedTree
 from nltk.draw import TreeView
 from spacy_stanfordnlp import StanfordNLPLanguage
 from stanfordnlp.utils.resources import DEFAULT_MODEL_DIR
 
+AlignmentPair = NamedTuple("AlignmentPair", [("src", int), ("tgt", int)])
 
-def draw_trees(*trees, include_word_idx=False):
+
+def aligns_from_str(aligns: str) -> List[AlignmentPair]:
+    return sorted([AlignmentPair(*map(int, align.split("-"))) for align in aligns.split()])
+
+
+def aligns_to_str(aligns: List[Union[Tuple[int, int], AlignmentPair]]) -> str:
+    """ Convert list of alignments (tuple of src, tgt) to GIZA/Pharaoh string """
+    return " ".join([f"{src}-{tgt}" for src, tgt in aligns])
+
+
+def draw_trees(*trees: ParentedTree, include_word_idx: bool = False):
     """
     Open a new window containing a graphical diagram of the given
     trees. Optionally prepend the word index to the labels so
@@ -26,21 +39,12 @@ def draw_trees(*trees, include_word_idx=False):
     TreeView(*word_idxs_trees).mainloop()
 
 
-def load_nlp(lang_or_model, tokenize_pretokenized=True, use_gpu=True):
-    stanfordnlp.download(lang_or_model, DEFAULT_MODEL_DIR)
+def load_nlp(lang: str, tokenize_pretokenized: bool = True, use_gpu: bool = True):
+    stanfordnlp.download(lang, DEFAULT_MODEL_DIR)
     snlp = stanfordnlp.Pipeline(
         processors="tokenize,pos,depparse",
-        lang=lang_or_model,
+        lang=lang,
         tokenize_pretokenized=tokenize_pretokenized,
         use_gpu=use_gpu,
     )
     return StanfordNLPLanguage(snlp)
-
-
-def aligns_from_str(aligns):
-    return sorted([tuple(map(int, align.split("-"))) for align in aligns.split()])
-
-
-def aligns_to_str(aligns):
-    """ Convert list of alignments (tuple of src, tgt) to GIZA/Pharaoh string """
-    return " ".join([f"{s}-{t}" for s, t in aligns])

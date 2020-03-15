@@ -3,7 +3,7 @@ from collections import Counter, defaultdict
 
 from nltk import ParentedTree
 
-from sacr.utils import load_nlp
+from .utils import load_nlp
 
 # stanfordnlp triggers torch's UserWarnings
 warnings.filterwarnings("ignore", category=UserWarning)
