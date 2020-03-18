@@ -5,13 +5,13 @@ with Path('README.rst').open(encoding='utf-8') as fhin:
     long_description = fhin.read()
 
 setup(
-    name='sacr',
+    name='astred',
     version='0.0.1',
     description='A',
     long_description=long_description,
     long_description_content_type='text/x-rst',
-    keywords='nlp tree-edit-distance ted syntax compling sacr syntactic-distance translation',
-    packages=['sacr'],
+    keywords='nlp tree-edit-distance ted syntax compling astred syntactic-distance translation',
+    packages=['astred'],
     url='https://github.com/BramVanroy/syntactically-aware-cross',
     author='Bram Vanroy',
     author_email='bramvanroy@hotmail.com',
