@@ -1,12 +1,8 @@
-import warnings
 from collections import Counter, defaultdict
 
 from nltk import ParentedTree
 
 from .utils import load_nlp
-
-# stanfordnlp triggers torch's UserWarnings
-warnings.filterwarnings("ignore", category=UserWarning)
 
 
 class GenericTree(ParentedTree):

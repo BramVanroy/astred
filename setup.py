@@ -35,11 +35,7 @@ setup(
     install_requires=[
         'apted',
         'nltk',
-        'numpy',
-        'pandas',
-        'spacy_stanfordnlp',
-        'stanfordnlp',
-        'tqdm'
+        'stanza'
     ],
     entry_points={
         #'console_scripts': ['main_parse=astred.__main__:main']
