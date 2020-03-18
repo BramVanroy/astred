@@ -39,7 +39,6 @@ def draw_trees(*trees: ParentedTree, include_word_idx: bool = False):
 
 
 def load_nlp(lang: str, tokenize_pretokenized: bool = True, use_gpu: bool = True):
-    stanza.download(lang, DEFAULT_MODEL_DIR)
     return stanza.Pipeline(
         processors="tokenize,pos,lemma,depparse",
         lang=lang,
