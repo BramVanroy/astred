@@ -10,12 +10,12 @@ setup(
     description='A',
     long_description=long_description,
     long_description_content_type='text/x-rst',
-    keywords='nlp tree-edit-distance ted syntax compling astred syntactic-distance translation',
+    keywords='nlp tree-edit-distance ted syntax compling computational-linguistics astred syntactic-distance translation',
     packages=['astred'],
-    url='https://github.com/BramVanroy/syntactically-aware-cross',
+    url='https://github.com/BramVanroy/astred',
     author='Bram Vanroy',
     author_email='bramvanroy@hotmail.com',
-    license='BSD 2',
+    license='Apache 2.0',
     classifiers=[
         'Development Status :: 1 - Planning',
         'Intended Audience :: Developers',
@@ -37,7 +37,12 @@ setup(
         'nltk',
         'stanza'
     ],
-    entry_points={
-        #'console_scripts': ['main_parse=astred.__main__:main']
+    extras_require={
+        'dev': [
+            'isort @ git+git://github.com/timothycrosley/isort.git@e63ae06ec7d70b06df9e528357650281a3d3ec22#egg=isort',
+            'black',
+            'flake8',
+            'pytest'
+        ]
     }
 )
