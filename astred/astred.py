@@ -37,6 +37,7 @@ class ASTrED(SACr):
     --------
     SACr : `ASTrED`'s super class
     """
+
     def __init__(self, alignments, src_segment, tgt_segment, **kwargs):
         super().__init__(alignments, src_segment, tgt_segment, **kwargs)
 

@@ -2,7 +2,7 @@ from collections import defaultdict
 from itertools import combinations
 from typing import Dict, Generator, List, Optional, Set, Tuple, Union
 
-from .utils import aligns_from_str, aligns_to_str, AlignmentPair
+from .utils import AlignmentPair, aligns_from_str, aligns_to_str
 
 
 class _Cross:
@@ -112,7 +112,9 @@ class _Cross:
             }
         return self._tgt2srclist_d
 
-    def _add_unsolved_idxs(self, src_idxs_grouped: Set[int], tgt_idxs_grouped: Set[int], groups: List):
+    def _add_unsolved_idxs(
+        self, src_idxs_grouped: Set[int], tgt_idxs_grouped: Set[int], groups: List
+    ):
         """ Manually checking if all alignments are grouped, and if not: adding as
         their own group, solves that
         :param src_idxs_grouped:
@@ -139,9 +141,7 @@ class _Cross:
         # That means that we do not catch one-to-many, many-to-one because that would be
         # too broad and have too many false positives
         src_combs = self._consec_combinations(
-            list(self.src2tgtlist_d.keys()),
-            self.src2tgtlist_d,
-            min_size=2
+            list(self.src2tgtlist_d.keys()), self.src2tgtlist_d, min_size=2
         )
 
         # need to listify the generator because it is in the internal loop
@@ -149,9 +149,8 @@ class _Cross:
         # it for all outer loops, so build a list
         tgt_combs = list(
             self._consec_combinations(
-                list(self.tgt2srclist_d.keys()),
-                self.tgt2srclist_d,
-                min_size=2)
+                list(self.tgt2srclist_d.keys()), self.tgt2srclist_d, min_size=2
+            )
         )
 
         src_idxs_grouped = set()
@@ -268,8 +267,9 @@ class _Cross:
             that would be too broad.
             """
         for src_idx in src_comb:
-            if any(tgt_idx not in self._src2tgtlist_d[src_idx] for tgt_idx in
-                   tgt_comb) or self._has_external_aligns(src_comb, tgt_comb):
+            if any(
+                tgt_idx not in self._src2tgtlist_d[src_idx] for tgt_idx in tgt_comb
+            ) or self._has_external_aligns(src_comb, tgt_comb):
                 return False
 
         return True
@@ -334,15 +334,16 @@ class _Cross:
 
                 # If the src_combo+tgt_combo is a MWE or (it has no external aligns and
                 # no internal crosses): go on
-                if is_mwe or (not self._has_external_aligns(src_comb, tgt_comb)
-                              and not has_internal_cross):
+                if is_mwe or (
+                    not self._has_external_aligns(src_comb, tgt_comb) and not has_internal_cross
+                ):
                     # Keep track of src+tgt idxs that are already grouped
                     src_idxs_grouped.update(src_comb)
                     tgt_idxs_grouped.update(tgt_comb)
                     # Get all alignments of this group and add them as group
-                    alignments_of_group = sorted([
-                        i for src in src_comb for i in self.src2aligns_d[src]
-                    ])
+                    alignments_of_group = sorted(
+                        [i for src in src_comb for i in self.src2aligns_d[src]]
+                    )
 
                     groups.append(alignments_of_group)
                     # Break because we have found a suitable group
@@ -362,7 +363,9 @@ class _Cross:
         return a_1.tgt > a_2.tgt
 
     @staticmethod
-    def _consec_combinations(idxs: List[int], dir2dirlist_d: Optional[Dict] = None, min_size: int = 1) -> Generator:
+    def _consec_combinations(
+        idxs: List[int], dir2dirlist_d: Optional[Dict] = None, min_size: int = 1
+    ) -> Generator:
         """ Get all consequtive combinations of idxs of all possible lengths.
             When getting consecutive combinations in cross, we want to split on -1 (null),
             but when getting consec groups in SAC, we already have groups without -1, so
@@ -372,17 +375,18 @@ class _Cross:
         n_idxs = len(idxs)
         for i in range(n_idxs, min_size - 1, -1):
             for j in range(n_idxs - i + 1):
-                s = set(idxs[j: j + i])
+                s = set(idxs[j : j + i])
                 # Do not make combinations with -1 (null), because -1 should always break groups
                 if dir2dirlist_d is not None and (
-                        -1 in s or any(-1 in dir2dirlist_d[i] for i in s)
+                    -1 in s or any(-1 in dir2dirlist_d[i] for i in s)
                 ):
                     continue
                 yield s
 
     @staticmethod
-    def _direction2aligns(tuple_aligns: List[AlignmentPair]) -> Tuple[Dict[int, List[AlignmentPair]],
-                                                                      Dict[int, List[AlignmentPair]]]:
+    def _direction2aligns(
+        tuple_aligns: List[AlignmentPair],
+    ) -> Tuple[Dict[int, List[AlignmentPair]], Dict[int, List[AlignmentPair]]]:
         """ Get dictionaries {src_idx|tgt_idx: list of alignments (as tuples) with this idx}"""
         d_src = defaultdict(list)
         d_tgt = defaultdict(list)
@@ -420,5 +424,7 @@ class _Cross:
         return sorted(set(src_idxs)), sorted(set(tgt_idxs))
 
     @classmethod
-    def from_list(cls, align_list: List[Union[Tuple[int, int], AlignmentPair]], *args, **kwargs):
+    def from_list(
+        cls, align_list: List[Union[Tuple[int, int], AlignmentPair]], *args, **kwargs
+    ):
         return cls(aligns_to_str(align_list), *args, **kwargs)

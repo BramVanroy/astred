@@ -5,14 +5,14 @@ from .utils import AlignmentPair
 
 class SACr(_Cross):
     def __init__(
-            self,
-            alignments,
-            src_segment,
-            tgt_segment,
-            src_lang="en",
-            tgt_lang="nl",
-            use_gpu=True,
-            **kwargs,
+        self,
+        alignments,
+        src_segment,
+        tgt_segment,
+        src_lang="en",
+        tgt_lang="nl",
+        use_gpu=True,
+        **kwargs,
     ):
         super().__init__(alignments, **kwargs)
         self.src_segment = src_segment
@@ -75,10 +75,14 @@ class SACr(_Cross):
             of tokens from the given text, and so we can catch when the last token(s) are not aligned
         """
         src_missing = [
-            AlignmentPair(idx, -1) for idx in range(len(self.src_tokens)) if idx not in self.src_idxs
+            AlignmentPair(idx, -1)
+            for idx in range(len(self.src_tokens))
+            if idx not in self.src_idxs
         ]
         tgt_missing = [
-            AlignmentPair(-1, idx) for idx in range(len(self.tgt_tokens)) if idx not in self.tgt_idxs
+            AlignmentPair(-1, idx)
+            for idx in range(len(self.tgt_tokens))
+            if idx not in self.tgt_idxs
         ]
 
         return src_missing + tgt_missing
@@ -155,17 +159,18 @@ class SACr(_Cross):
                         is_mwe = self.group_mwe and self._is_in_mwe(src_comb, tgt_comb)
 
                     # if a combination is a valid MWE, don't split them up based on subtrees
-                    if is_mwe or (not self._has_external_aligns(src_comb, tgt_comb) and
-                                  self._is_valid_subtree(src_comb, "src")
-                                  and self._is_valid_subtree(tgt_comb, "tgt")
+                    if is_mwe or (
+                        not self._has_external_aligns(src_comb, tgt_comb)
+                        and self._is_valid_subtree(src_comb, "src")
+                        and self._is_valid_subtree(tgt_comb, "tgt")
                     ):
                         # Keep track of src+tgt idxs that are already grouped
                         src_idxs_grouped.update(src_comb)
                         tgt_idxs_grouped.update(tgt_comb)
                         # Get all alignments of this group and add them as group
-                        alignments_of_group = sorted([
-                            i for src in src_comb for i in self.src2aligns_d[src]
-                        ])
+                        alignments_of_group = sorted(
+                            [i for src in src_comb for i in self.src2aligns_d[src]]
+                        )
                         modified_groups.append(alignments_of_group)
                         if is_mwe:
                             mwe_groups.append(alignments_of_group)

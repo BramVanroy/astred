@@ -1,9 +1,9 @@
 from copy import deepcopy
 from typing import List, NamedTuple, Tuple, Union
 
-from nltk.tree import ParentedTree
-from nltk.draw import TreeView
 import stanza
+from nltk.draw import TreeView
+from nltk.tree import ParentedTree
 from stanza.utils.resources import DEFAULT_MODEL_DIR
 
 AlignmentPair = NamedTuple("AlignmentPair", [("src", int), ("tgt", int)])
@@ -44,6 +44,5 @@ def load_nlp(lang: str, tokenize_pretokenized: bool = True, use_gpu: bool = True
         lang=lang,
         tokenize_pretokenized=tokenize_pretokenized,
         use_gpu=use_gpu,
-        logging_level='WARN'
+        logging_level="WARN",
     )
-

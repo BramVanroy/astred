@@ -178,13 +178,11 @@ class GenericTree(ParentedTree):
                 root_label,
                 is_root=is_root,
                 text=root.text,
-                word_order_idx=int(root.id)-1,
+                word_order_idx=int(root.id) - 1,
                 add_word_order_tree=True,
                 level=level,
                 children=child_trees,
             )
-
-        root_node = next(word for word in sentence.words if word.head == 0)
 
         return parse(get_children(0)[0], is_root=True)
 
@@ -199,6 +197,7 @@ class GenericTree(ParentedTree):
         :param use_gpu:
         :return: a GenericTree, representing the given 'text'
         """
+
         if lang_or_model not in cls.NLPS:
             cls.NLPS[lang_or_model] = load_nlp(lang_or_model, **kwargs)
 
