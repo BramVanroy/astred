@@ -10,7 +10,7 @@ setup(
     description='A',
     long_description=long_description,
     long_description_content_type='text/x-rst',
-    keywords='nlp tree-edit-distance ted syntax compling computational-linguistics astred syntactic-distance translation',
+    keywords='nlp tree-edit-distance ted syntax compling computational-linguistics syntactic-distance translation',
     packages=['astred'],
     url='https://github.com/BramVanroy/astred',
     author='Bram Vanroy',
@@ -28,8 +28,8 @@ setup(
         'Operating System :: OS Independent'
     ],
     project_urls={
-        'Bug Reports': 'https://github.com/BramVanroy/syntactically-aware-cross',
-        'Source': 'https://github.com/BramVanroy/syntactically-aware-cross',
+        'Issue tracker': 'https://github.com/BramVanroy/astred',
+        'Source': 'https://github.com/BramVanroy/astred'
     },
     python_requires='>=3.6',
     install_requires=[
