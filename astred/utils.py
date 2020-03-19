@@ -4,7 +4,6 @@ from typing import List, NamedTuple, Tuple, Union
 import stanza
 from nltk.draw import TreeView
 from nltk.tree import ParentedTree
-from stanza.utils.resources import DEFAULT_MODEL_DIR
 
 AlignmentPair = NamedTuple("AlignmentPair", [("src", int), ("tgt", int)])
 
