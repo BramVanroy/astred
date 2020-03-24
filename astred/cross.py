@@ -412,8 +412,7 @@ class _Cross:
         :param aligns: a str representing alignments
         :return: the cross value for these alignments
         """
-
-        tgt_idxs = sorted(set([pair.tgt for pair in aligns]))
+        tgt_idxs = [pair.tgt for pair in aligns]
 
         return sum([1 for t1, t2 in combinations(tgt_idxs, 2) if t2 < t1])
 
