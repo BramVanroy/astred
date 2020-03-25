@@ -27,6 +27,12 @@ def main(src, tgt, lang='en', pretokenized=False, draw=False):
     if draw:
         draw_trees(tree_ref.text_tree, tree_hyp.text_tree, include_word_idx=True)
 
+    # verify that the we can retrieve the correct order of the tokens from the tree
+    # taking advantage of ordered dicts in 3.6+
+    if pretokenized:
+        assert " ".join(subtree.label() for subtree in tree_ref.text_tree.word_order_idx_mapping.values()) == src
+        assert " ".join(subtree.label() for subtree in tree_hyp.text_tree.word_order_idx_mapping.values()) == tgt
+
 
 if __name__ == '__main__':
     import argparse
