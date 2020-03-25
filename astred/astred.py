@@ -1,4 +1,4 @@
-from typing import Tuple, Optional, List, Dict, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 from .sacr import SACr
 from .tree import GenericTree
@@ -110,7 +110,7 @@ class ASTrED(SACr):
     @property
     def merged_src_tree(self):
         if self._merged_src_tree is None:
-            self._merged_src_tree = self._get_merged_tree('src')
+            self._merged_src_tree = self._get_merged_tree("src")
         return self._merged_src_tree
 
     @property
@@ -128,7 +128,7 @@ class ASTrED(SACr):
     @property
     def merged_tgt_tree(self):
         if self._merged_tgt_tree is None:
-            self._merged_tgt_tree = self._get_merged_tree('tgt')
+            self._merged_tgt_tree = self._get_merged_tree("tgt")
         return self._merged_tgt_tree
 
     @property

@@ -1,8 +1,8 @@
 from copy import deepcopy
 from typing import List, NamedTuple, Tuple, Union
 
-from apted import APTED, helpers
 import stanza
+from apted import APTED, helpers
 from nltk.draw import TreeView
 from nltk.tree import ParentedTree
 
@@ -53,11 +53,16 @@ def get_distance(src_tree, tgt_tree):
     return dist, opts
 
 
-def load_nlp(lang: str, tokenize_pretokenized: bool = True, use_gpu: bool = True, logging_level: str = "INFO"):
+def load_nlp(
+    lang: str,
+    tokenize_pretokenized: bool = True,
+    use_gpu: bool = True,
+    logging_level: str = "INFO",
+):
     return stanza.Pipeline(
         processors="tokenize,mwt,pos,lemma,depparse",
         lang=lang,
         tokenize_pretokenized=tokenize_pretokenized,
         use_gpu=use_gpu,
-        logging_level=logging_level
+        logging_level=logging_level,
     )
