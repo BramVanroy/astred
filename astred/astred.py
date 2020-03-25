@@ -1,8 +1,8 @@
-from copy import deepcopy
-
-from apted import APTED, helpers
+from typing import Tuple, Optional, List, Dict, Union
 
 from .sacr import SACr
+from .tree import GenericTree
+from .utils import get_distance
 
 
 class ASTrED(SACr):
@@ -15,12 +15,12 @@ class ASTrED(SACr):
 
     Parameters
     ----------
+    alignments : str
+        The word alignments, in GIZA format
     src_segment : str
         The tokenized source string
     tgt_segment : str
         The tokenized target string
-    alignments : str
-        The word alignments, in GIZA format
     kwargs
         Additional keyword arguments that will be passed to the super class `SACr`
 
@@ -33,35 +33,31 @@ class ASTrED(SACr):
     avg_token_label_changes
     overlap_label_changes
 
-    See Also
-    --------
-    SACr : `ASTrED`'s super class
     """
 
-    def __init__(self, alignments, src_segment, tgt_segment, **kwargs):
+    def __init__(self, alignments: str, src_segment: str, tgt_segment: str, **kwargs):
         super().__init__(alignments, src_segment, tgt_segment, **kwargs)
 
-        self._ted = None
-        self._astred = None
+        self._ted: Optional[Tuple[int, List]] = None
+        self._astred: Optional[Tuple[int, List]] = None
 
-        self._merged_src_tree = None
-        self._merged_tgt_tree = None
+        self._merged_src_tree: Optional[GenericTree] = None
+        self._merged_tgt_tree: Optional[GenericTree] = None
 
-        self._src_labels_map = None
-        self._tgt_labels_map = None
-        self._merged_src_labels_map = None
-        self._merged_tgt_labels_map = None
+        self._src_labels_map: Optional[Dict[int, str]] = None
+        self._tgt_labels_map: Optional[Dict[int, str]] = None
+        self._merged_src_labels_map: Optional[Dict[int, str]] = None
+        self._merged_tgt_labels_map: Optional[Dict[int, str]] = None
 
-        self._label_changes = None
-        self._default_label_changes = None
-        self._avg_token_label_changes = None
-        self._overlap_label_changes = None
+        self._label_changes: Optional[Dict[str, Union[float, Dict]]] = None
+        self._default_label_changes: Optional[float] = None
+        self._avg_token_label_changes: Optional[Dict[str, float]] = None
+        self._overlap_label_changes: Optional[Dict[str, float]] = None
 
     @property
     def astred(self):
-        # astred is a tuple containing the distance and all operations
         if self._astred is None:
-            self._astred = self._get_distance(self.merged_src_tree, self.merged_tgt_tree)
+            self._astred = get_distance(self.merged_src_tree, self.merged_tgt_tree)
         return self._astred
 
     @property
@@ -114,35 +110,25 @@ class ASTrED(SACr):
     @property
     def merged_src_tree(self):
         if self._merged_src_tree is None:
-            self._merged_src_tree = deepcopy(self.src_tree)
-            for idx, name in self.merged_src_labels_map.items():
-                if idx != -1:
-                    self._merged_src_tree.word_order_idx_mapping[idx].set_label(name)
+            self._merged_src_tree = self._get_merged_tree('src')
         return self._merged_src_tree
 
     @property
     def merged_src_labels_map(self):
         if self._merged_src_labels_map is None:
-            mod_src_names_map, mod_tgt_names_map = self._merge_maps()
-            self._merged_src_labels_map = {**self.src_labels_map, **mod_src_names_map}
-            self._merged_tgt_labels_map = {**self.tgt_labels_map, **mod_tgt_names_map}
+            self._merged_src_labels_map, self._merged_tgt_labels_map = self._merge_maps()
         return self._merged_src_labels_map
 
     @property
     def merged_tgt_labels_map(self):
         if self._merged_tgt_labels_map is None:
-            mod_src_names_map, mod_tgt_names_map = self._merge_maps()
-            self._merged_src_labels_map = {**self.src_labels_map, **mod_src_names_map}
-            self._merged_tgt_labels_map = {**self.tgt_labels_map, **mod_tgt_names_map}
+            self._merged_src_labels_map, self._merged_tgt_labels_map = self._merge_maps()
         return self._merged_tgt_labels_map
 
     @property
     def merged_tgt_tree(self):
         if self._merged_tgt_tree is None:
-            self._merged_tgt_tree = deepcopy(self.tgt_tree)
-            for idx, name in self.merged_tgt_labels_map.items():
-                if idx != -1:
-                    self._merged_tgt_tree.word_order_idx_mapping[idx].set_label(name)
+            self._merged_tgt_tree = self._get_merged_tree('tgt')
         return self._merged_tgt_tree
 
     @property
@@ -176,7 +162,7 @@ class ASTrED(SACr):
     def ted(self):
         # ted is a tuple containing the distance and all operations
         if self._ted is None:
-            self._ted = self._get_distance(self.src_tree, self.tgt_tree)
+            self._ted = get_distance(self.src_tree, self.tgt_tree)
         return self._ted
 
     @property
@@ -198,8 +184,12 @@ class ASTrED(SACr):
         return self._tgt_labels_map
 
     def _merge_maps(self):
-        """ Merge two dictionary maps based on their alignments.
-            The resulting trees contain the information of both trees. """
+        """Merge two dictionary maps based on their alignments.
+           The resulting trees contain the information of both trees.
+        Returns
+        -------
+
+        """
 
         mod_src2tgtlist_d = self._change_map(self.src2tgtlist_d, "src", "tgt")
         mod_tgt2srclist_d = self._change_map(self.tgt2srclist_d, "tgt", "src")
@@ -267,18 +257,35 @@ class ASTrED(SACr):
                 else:
                     mod_tgt_labels_map[idx] = serialized
 
-        return mod_src_labels_map, mod_tgt_labels_map
+        merged_src_labels_map = {**self.src_labels_map, **mod_src_labels_map}
+        merged_tgt_labels_map = {**self.tgt_labels_map, **mod_tgt_labels_map}
+
+        return merged_src_labels_map, merged_tgt_labels_map
+
+    def _get_merged_tree(self, side):
+        tree_copy = getattr(self, f"{side}_tree")
+        for idx, name in getattr(self, f"merged_{side}_labels_map").items():
+            # Skip null alignments (-1)
+            if idx != -1:
+                tree_copy.word_order_idx_mapping[idx].set_label(name)
+
+        return tree_copy
 
     @staticmethod
     def _change_map(dmap, key_text, val_text):
-        """ Change the key and values for a map by adding
+        """Change the key and values for a map by adding
             a 'key_text' and 'tgt_text' (e.g. 'src' or 'tgt')
             to be able to distinguish the two.
 
-        :param dmap: the initial mapping
-        :param key_text: key text to use (e.g. 'src', 'tgt')
-        :param val_text: val text to use (e.g. 'src', 'tgt')
-        :return: the modified dict
+        Parameters
+        ----------
+        dmap the initial mapping
+        key_text key text to use (e.g. 'src', 'tgt')
+        val_text al text to use (e.g. 'src', 'tgt')
+
+        Returns
+        -------
+        The modified dict with changed labels
         """
         m = {}
         for k, v in dmap.items():
@@ -331,23 +338,8 @@ class ASTrED(SACr):
                 raise ValueError("'method' must be one of 'default', 'token_avg', 'overlap'")
             n_changes += idx_changes
 
-        return n_changes
-
-    @staticmethod
-    def _get_distance(src_tree, tgt_tree):
-        """ Calculate the distance between the source and target tree.
-        :return: the tree edit distance for the given trees and optionally the required operations
-        """
-        src_tree_str = src_tree.to_string(parens="{}")
-        tree_src_apted = helpers.Tree.from_text(src_tree_str)
-        tgt_tree_str = tgt_tree.to_string(parens="{}")
-        tgt_tree_apted = helpers.Tree.from_text(tgt_tree_str)
-
-        apted = APTED(tree_src_apted, tgt_tree_apted)
-        dist = apted.compute_edit_distance()
-        opts = apted.compute_edit_mapping()
-
-        return dist, opts
+        # return float for consistency
+        return float(n_changes)
 
     @staticmethod
     def _serialize_group(group):
