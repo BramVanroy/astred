@@ -7,7 +7,8 @@ with Path('README.rst').open(encoding='utf-8') as fhin:
 setup(
     name='astred',
     version='0.0.1',
-    description='A',
+    description='A collection of syntactically aware metrics to calculate equivalence. Also provides useful utility'
+                ' scripts for those who work with dependency trees.',
     long_description=long_description,
     long_description_content_type='text/x-rst',
     keywords='nlp tree-edit-distance ted syntax compling computational-linguistics syntactic-distance translation',
@@ -17,7 +18,7 @@ setup(
     author_email='bramvanroy@hotmail.com',
     license='Apache 2.0',
     classifiers=[
-        'Development Status :: 1 - Planning',
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'Intended Audience :: Science/Research',
         'Topic :: Scientific/Engineering',
