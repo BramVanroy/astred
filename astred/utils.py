@@ -55,7 +55,7 @@ def get_distance(src_tree, tgt_tree):
 
 def load_nlp(lang: str, tokenize_pretokenized: bool = True, use_gpu: bool = True, logging_level: str = "INFO"):
     return stanza.Pipeline(
-        processors="tokenize,pos,lemma,depparse",
+        processors="tokenize,mwt,pos,lemma,depparse",
         lang=lang,
         tokenize_pretokenized=tokenize_pretokenized,
         use_gpu=use_gpu,
