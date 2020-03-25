@@ -24,6 +24,17 @@ the required dependencies.
 .. _stanza: https://github.com/stanfordnlp/stanza
 .. _PyTorch installation: https://pytorch.org/get-started/locally/
 
+Before trying to run any code, make sure that you have downloaded the correct stanza models. This can be done by running
+the following commands in your Python interpreter:
+
+.. code-block:: python
+
+    import stanza
+    # use the correct language code here
+    # see https://stanfordnlp.github.io/stanza/models.html#available-ud-models
+    stanza.download('en')
+
+
 Examples
 --------
 You can find some examples in the examples folder.
