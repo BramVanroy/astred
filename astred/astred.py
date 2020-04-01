@@ -1,3 +1,4 @@
+from copy import deepcopy
 from typing import Dict, List, Optional, Tuple, Union
 
 from .sacr import SACr
@@ -263,7 +264,7 @@ class ASTrED(SACr):
         return merged_src_labels_map, merged_tgt_labels_map
 
     def _get_merged_tree(self, side):
-        tree_copy = getattr(self, f"{side}_tree")
+        tree_copy = deepcopy(getattr(self, f"{side}_tree"))
         for idx, name in getattr(self, f"merged_{side}_labels_map").items():
             # Skip null alignments (-1)
             if idx != -1:
