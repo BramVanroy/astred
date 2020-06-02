@@ -16,6 +16,7 @@ class Word:
     ):
         self.text: str = text
         self.udep: str = udep
+        # Note: idx starts counting at 1 because 0 is the invisible root in stanza
         self.idx: int = idx
         self.head_idx: int = head_idx
         self.upos: str = upos
@@ -24,6 +25,7 @@ class Word:
         self.aligned_words: List[Word] = []
 
         self.aligned_idxs: List[int] = []
+        self.moved_dists: List[int] = []
 
         self.is_aligned: bool = False
 
@@ -36,10 +38,16 @@ class Word:
         self.seq_cross: int = 0
         self.sacr_cross: int = 0
 
+    @property
+    def aligned(self):
+        return list(zip(*[self.aligned_idxs, self.aligned_words, self.moved_dists]))
+
     def add_aligned_with(self, word):
         self.is_aligned = True
+
         self.aligned_idxs.append(word.idx)
         self.aligned_words.append(word)
+        self.moved_dists.append(word.idx - self.idx)
 
     def add_word_cross(self, aligned_idx):
         self.word_cross += 1
