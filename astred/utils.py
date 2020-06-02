@@ -45,7 +45,7 @@ class Alignments(list):
 _NLPS = {}
 
 
-def aligns_from_str(aligns: str) -> List[AlignedIdxs]:
+def aligns_from_str(aligns: str) -> Alignments:
     return Alignments(
         *sorted([AlignedIdxs(*map(int, align.split("-"))) for align in aligns.split()])
     )
