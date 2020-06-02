@@ -2,7 +2,7 @@ from collections import defaultdict
 from itertools import combinations
 from typing import Dict, Generator, List, Optional, Set, Tuple, Union
 
-from .utils import AlignmentPair, aligns_from_str, aligns_to_str
+from .utils import AlignedIdxs, aligns_from_str, aligns_to_str
 
 
 class _Cross:
@@ -126,13 +126,13 @@ class _Cross:
             if src_idx not in src_idxs_grouped:
                 for aligns in self.src2aligns_d[src_idx]:
                     if [aligns] not in groups:
-                        groups.append([AlignmentPair(*aligns)])
+                        groups.append([AlignedIdxs(*aligns)])
 
         for tgt_idx in self.tgt_idxs:
             if tgt_idx not in tgt_idxs_grouped:
                 for aligns in self.tgt2aligns_d[tgt_idx]:
                     if [aligns] not in groups:
-                        groups.append([AlignmentPair(*aligns)])
+                        groups.append([AlignedIdxs(*aligns)])
 
         return groups
 
@@ -205,8 +205,8 @@ class _Cross:
             max_idx = max(idxs)
             return [i for i in range(max_idx) if i not in idxs]
 
-        src_missing = [AlignmentPair(idx, -1) for idx in missing_idxs(self.src_idxs)]
-        tgt_missing = [AlignmentPair(-1, idx) for idx in missing_idxs(self.tgt_idxs)]
+        src_missing = [AlignedIdxs(idx, -1) for idx in missing_idxs(self.src_idxs)]
+        tgt_missing = [AlignedIdxs(-1, idx) for idx in missing_idxs(self.tgt_idxs)]
 
         return src_missing + tgt_missing
 
@@ -226,7 +226,7 @@ class _Cross:
         tgt_order = self._get_idxs(max_tgt)
 
         # Merge indices into sequence alignments
-        aligns = [AlignmentPair(src, tgt) for src, tgt in zip(src_order, tgt_order)]
+        aligns = [AlignedIdxs(src, tgt) for src, tgt in zip(src_order, tgt_order)]
 
         return aligns
 
@@ -354,7 +354,7 @@ class _Cross:
         return sorted(groups)
 
     @staticmethod
-    def alignments_cross(aligns: Tuple[AlignmentPair]):
+    def alignments_cross(aligns: Tuple[AlignedIdxs]):
         """ Check if two alignments cross one another
             i.e., sort them and see if first item's tgt > second item's tgt"""
         aligns = sorted(aligns)
@@ -385,8 +385,8 @@ class _Cross:
 
     @staticmethod
     def _direction2aligns(
-        tuple_aligns: List[AlignmentPair],
-    ) -> Tuple[Dict[int, List[AlignmentPair]], Dict[int, List[AlignmentPair]]]:
+        tuple_aligns: List[AlignedIdxs],
+    ) -> Tuple[Dict[int, List[AlignedIdxs]], Dict[int, List[AlignedIdxs]]]:
         """ Get dictionaries {src_idx|tgt_idx: list of alignments (as tuples) with this idx}"""
         d_src = defaultdict(list)
         d_tgt = defaultdict(list)
@@ -406,7 +406,7 @@ class _Cross:
         return [l_sort.index(x) for x in idxs]
 
     @staticmethod
-    def _get_cross(aligns: List[AlignmentPair]):
+    def _get_cross(aligns: List[AlignedIdxs]):
         """ Get all crosses of a given list of alignments.
 
         :param aligns: a str representing alignments
@@ -417,13 +417,11 @@ class _Cross:
         return sum([1 for t1, t2 in combinations(tgt_idxs, 2) if t2 < t1])
 
     @staticmethod
-    def _get_src_tgt_idxs(aligns: List[Union[Tuple[int, int], AlignmentPair]]):
+    def _get_src_tgt_idxs(aligns: List[Union[Tuple[int, int], AlignedIdxs]]):
         """ Based on a list of alignments, get back the unique src and target indices """
         src_idxs, tgt_idxs = zip(*aligns)
         return sorted(set(src_idxs)), sorted(set(tgt_idxs))
 
     @classmethod
-    def from_list(
-        cls, align_list: List[Union[Tuple[int, int], AlignmentPair]], *args, **kwargs
-    ):
+    def from_list(cls, align_list: List[Union[Tuple[int, int], AlignedIdxs]], *args, **kwargs):
         return cls(aligns_to_str(align_list), *args, **kwargs)
