@@ -1,6 +1,6 @@
+from .align.utils import AlignedIdxs
 from .cross import _Cross
 from .tree import GenericTree
-from .utils import AlignmentPair
 
 
 class SACr(_Cross):
@@ -75,12 +75,12 @@ class SACr(_Cross):
             of tokens from the given text, and so we can catch when the last token(s) are not aligned
         """
         src_missing = [
-            AlignmentPair(idx, -1)
+            AlignedIdxs(idx, -1)
             for idx in range(len(self.src_tokens))
             if idx not in self.src_idxs
         ]
         tgt_missing = [
-            AlignmentPair(-1, idx)
+            AlignedIdxs(-1, idx)
             for idx in range(len(self.tgt_tokens))
             if idx not in self.tgt_idxs
         ]

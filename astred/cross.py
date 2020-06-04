@@ -2,7 +2,7 @@ from collections import defaultdict
 from itertools import combinations
 from typing import Dict, Generator, List, Optional, Set, Tuple, Union
 
-from .utils import AlignedIdxs, aligns_from_str, aligns_to_str
+from .align.utils import AlignedIdxs, aligns_from_str, aligns_to_str
 
 
 class _Cross:

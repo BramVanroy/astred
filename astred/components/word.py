@@ -17,8 +17,9 @@ class Word:
         self.text: str = text
         self.udep: str = udep
         # Note: idx starts counting at 1 because 0 is the invisible root in stanza
-        self.idx: int = idx
-        self.head_idx: int = head_idx
+        self.idx: int = idx - 1
+        self.head_idx: int = head_idx - 1
+
         self.upos: str = upos
         self.is_root: bool = is_root
         self.sentence = parent_sentence
@@ -29,12 +30,14 @@ class Word:
 
         self.is_aligned: bool = False
 
-        self.idx_seq_group: Optional[int] = None
-        self.idx_sacr_group: Optional[int] = None
+        self.seq_group_idx: Optional[int] = None
+        self.idx_in_seq_group: Optional[int] = None
+        self.sacr_group_idx: Optional[int] = None
+        self.idx_in_sacr_group: Optional[int] = None
 
         self.word_cross: int = 0
-
         self.word_cross_aligned_idxs: List[int] = []
+
         self.seq_cross: int = 0
         self.sacr_cross: int = 0
 
@@ -49,7 +52,7 @@ class Word:
         self.aligned_words.append(word)
         self.moved_dists.append(word.idx - self.idx)
 
-    def add_word_cross(self, aligned_idx):
+    def add_cross(self, aligned_idx):
         self.word_cross += 1
         self.word_cross_aligned_idxs.append(aligned_idx)
 

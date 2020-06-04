@@ -1,59 +1,11 @@
-from collections import defaultdict
 from copy import deepcopy
-from typing import List, NamedTuple, Tuple, Union
 
 import stanza
 from apted import APTED, helpers
 from nltk.draw import TreeView
 from nltk.tree import ParentedTree
 
-AlignedIdxs = NamedTuple("AlignedIdxs", [("src", int), ("tgt", int)])
-
-
-class Alignments(list):
-    def __init__(self, *idxs: AlignedIdxs):
-        super().__init__(idxs)
-        self._create_directional_dict()
-
-    def _create_directional_dict(self):
-        src_d = defaultdict(list)
-        tgt_d = defaultdict(list)
-
-        for pair in self:
-            src_d[pair.src].append(pair.tgt)
-            tgt_d[pair.tgt].append(pair.src)
-
-        self.src2tgt = dict(src_d)
-        self.tgt2src = dict(tgt_d)
-
-    @classmethod
-    def from_text_and_aligns(cls, src: List[str], tgt: List[str], aligns):
-        """Creates alignments for given source/target tokens taken into account existing
-           alignments. In practice, this simply uses those pre-existing alignments and inserts
-           null alignments where needed.
-        """
-        src_missing = [
-            AlignedIdxs(idx, -1) for idx in range(len(src)) if idx not in aligns.src2tgt.keys()
-        ]
-        tgt_missing = [
-            AlignedIdxs(-1, idx) for idx in range(len(tgt)) if idx not in aligns.tgt2src.keys()
-        ]
-
-        return cls(*sorted(aligns + src_missing + tgt_missing))
-
-
 _NLPS = {}
-
-
-def aligns_from_str(aligns: str) -> Alignments:
-    return Alignments(
-        *sorted([AlignedIdxs(*map(int, align.split("-"))) for align in aligns.split()])
-    )
-
-
-def aligns_to_str(aligns: Union[Alignments, List[Union[Tuple[int, int], AlignedIdxs]]]) -> str:
-    """Convert list of alignments (tuple of src, tgt) to GIZA/Pharaoh string """
-    return " ".join([f"{src}-{tgt}" for src, tgt in aligns])
 
 
 def draw_trees(*trees: ParentedTree, include_word_idx: bool = False):
