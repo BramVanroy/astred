@@ -1,7 +1,9 @@
 Syntactic equivalence metrics
 =============================
 
-**NOTE: THIS IS A BETA VERSION**
+**NOTE: THIS IS A BETA VERSION** 
+
+A new version is under construction that includes word-based metrics in addition to the currently implemented segment-based metrics.
 
 Installation
 ------------
