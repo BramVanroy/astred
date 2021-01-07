@@ -1,71 +1,77 @@
-from collections import Counter, defaultdict
+from __future__ import annotations
 
-from nltk import ParentedTree
+from abc import ABC
+from dataclasses import dataclass, field
+from typing import Any, List, Tuple, Union
 
-from .utils import load_nlp
+from apted import APTED
+from apted import Config as AptedConfig
+from nltk.draw.tree import draw_trees
+from nltk.tree import ParentedTree as NltkTree
+
+from .enum import EditOperation
 
 
-class GenericTree(ParentedTree):
-    NLPS = {}
-    """ GenericTree that extends the NLTK Tree by providing some convenience methods
-    to transform a spaCy Span into a tree structure.
-    """
+class AstredConfig(AptedConfig):
+    def __init__(self, attrs="connected_repr", attrs_sep="-"):
+        self.attrs = [attrs] if isinstance(attrs, str) else attrs
+        self.attrs_sep = attrs_sep
 
-    def __init__(
-        self,
-        node,
-        is_root=False,
-        text=None,
-        word_order_idx=0,
-        add_word_order_tree=False,
-        level=0,
-        children=None,
-    ):
-        """ Build GenericTree
-        :param node: this tree's label
-        :param is_root: is this the root tree (main tree). If so, the indices will be set automatically.
-        See self.set_indices()
-        :param word_order_idx: the index of the word/label in the main span
-        """
-        super().__init__(node, children)
-        self.text = text
-        self.text_tree = None
-        if text:
-            self.text_tree = GenericTree(
-                text,
-                is_root=False,
-                word_order_idx=word_order_idx,
-                children=[c.text_tree for c in children],
+    def node_repr(self, tree):
+        return (
+            self.attrs_sep.join([str(getattr(tree.node, attr)) for attr in self.attrs])
+            if tree
+            else None
+        )
+
+    def rename(self, node1: Tree, node2: Tree):
+        return int(self.node_repr(node1) != self.node_repr(node2))
+
+    def children(self, node):
+        """Returns children of node"""
+        return getattr(node, "children", [])
+
+
+@dataclass
+class TreeBase(ABC):
+    node: Any
+    children: List[TreeBase] = field(default_factory=list)
+    level: int = field(default=0)
+    parent: Tree = field(default=None, repr=False, init=False)
+    root: Tree = field(default=None, repr=False, init=False)
+    doc: Any = field(default=None, repr=False)
+    astred_op: EditOperation = field(default=None, init=False)
+
+    def __post_init__(self):
+        if any(not isinstance(child, self.__class__) for child in self.children):
+            raise ValueError(
+                "A tree's children must have the same class as its parent."
             )
+        self.attach_self_to_children()
+        if self.node.is_root:
+            self.attach_self_to_subtrees()
 
-        self.word_order_idx = word_order_idx
-        self.word_idx_tree = None
-        self.add_word_order_tree = add_word_order_tree
-        if add_word_order_tree:
-            self.word_idx_tree = GenericTree(
-                word_order_idx,
-                is_root=False,
-                word_order_idx=word_order_idx,
-                children=[c.word_idx_tree for c in children],
-            )
+    def as_embedded_tuples(self):
+        """Create embedded/recursive tuples in the form of (ROOT, [(child1, [subchildren...]), (child2, [subchildren2...]), ...])
+        Returns
+        -------
 
-        self.level = level
-        self.is_root = is_root
-        if is_root:
-            self._set_indices()
-
-    @property
-    def children(self):
-        """ Returns the direct children trees of this tree's root
-        :return: a list of immediate child trees
         """
-        return [c for c in self if isinstance(c, GenericTree)]
 
-    @property
-    def descendants(self):
-        """ Returns all descendant trees of this tree in a depth-first, left-to-right fashion.
-            Only returns the actual trees and not subsets or combinations.
-        :return: a list of all descendant subtrees
+        def children(root):
+            return root.node, [children(word) for word in root.children]
+
+        return children(self)
+
+    def subtrees(self, include_self: bool = True):
+        """Return a flat list of the unique, full subtrees (so no combinations or subparts of subtrees)
+        Parameters
+        ----------
+        include_self
+
+        Returns
+        -------
+
         """
 
         def _recursive_children(node, _descendants=None):
@@ -79,150 +85,132 @@ class GenericTree(ParentedTree):
 
             return _descendants
 
-        return _recursive_children(self)
-
-    def grouped_per_level(self, idxs):
-        """ Groups given indices per level. """
-        levels_d = defaultdict(list)
-        for i in idxs:
-            t = self.word_order_idx_mapping[i]
-            levels_d[t.level].append(i)
-
-        return dict(levels_d)
-
-    def grouped_per_parent(self, idxs, reverse=False):
-        """ Groups given indices per parent node. """
-        parents_d = {} if reverse else defaultdict(list)
-
-        for i in idxs:
-            t = self.word_order_idx_mapping[i]
-            if reverse:
-                parents_d[i] = t.parent().word_order_idx
-            else:
-                parents_d[t.parent().word_order_idx].append(i)
-
-        return dict(parents_d)
-
-    @property
-    def word_order_idx_mapping(self):
-        """ Get a mapping of self and its descendants, going from
-            word_order_idx to GenericTree
-        :return: sorted dictionary of integers (word_order_idx) to GenericTree
-        """
-        d = {d.word_order_idx: d for d in self.descendants}
-        d[self.word_order_idx] = self
-        return dict(sorted(d.items()))
-
-    def _get_children(self):
-        """ Convenience method to be used in cls.distance()
-        :return: a list of immediate subtrees
-        """
-        return self.children
-
-    def add_word_idx_to_label(self):
-        """ Add word idx to the label to make it visually more clear which word
-            is where in the tree. Only do this when drawing the tree, NOT during processing
-            or calculating the label changes, because that might give unexpected resutls.
-            Should not be called for each subtree, but only on the main tree!
-        :return:
-        """
-        for idx, tree in self.word_order_idx_mapping.items():
-            label = tree.label()
-            tree.set_label(f"{idx}<{label}")
-
-    def _set_indices(self):
-        """ For the whole main tree, set an index on all labels to distinguish ones that have
-        the same label. So if two nodes are 'aux', convert them into 'aux-1' and 'aux-2'
-        Should not be called for each subtree, but only on the main tree!
-        :return:
-        """
-        label_counter = Counter()
-        for idx, tree in self.word_order_idx_mapping.items():
-            label = tree.label()
-            label_counter[label] += 1
-            tree.set_label(f"{label}-{label_counter[label]}")
-
-    def to_string(self, parens="()", pretty=False):
-        """ Convert a tree to a string representation (using NLTK's tree methods).
-
-        :param parens: which parenthesis to use to visually represent nodes
-        :param pretty: whether to pretty print (structured) or on one line
-        :return:
-        """
-        if pretty:
-            form = self.pformat(parens=parens)
+        if include_self:
+            return [self] + _recursive_children(self)
         else:
-            form = self._pformat_flat("", parens, False).replace(" ", "")
+            return _recursive_children(self)
 
-        return form
+    def attach_self_to_children(self):
+        for subtree in self.children:
+            subtree.parent = self
+
+    def attach_self_to_subtrees(self):
+        for subtree in self.subtrees(include_self=False):
+            subtree.root = self
+
+    def to_string(
+        self,
+        attrs: Union[List[str], str] = "text",
+        attrs_sep: str = "-",
+        parens: Union[List[str], Tuple[str], str] = "()",
+        pretty: bool = False,
+        end_on_newline: bool = False,
+        node_sep: str = " ",
+        indent: str = "\t",
+    ):
+        if len(parens) != 2:
+            raise ValueError(
+                "'parens' must contain exactly two characters to use as"
+                " the start and end character respectively"
+            )
+        start_parens, end_parens = parens[0], parens[-1]
+
+        if isinstance(attrs, str):
+            attrs = [attrs]
+
+        def build_str(tree, is_last_child=True):
+            s = start_parens
+            s += (
+                tree.node
+                if isinstance(tree.node, str)
+                else attrs_sep.join([str(getattr(tree.node, attr)) for attr in attrs])
+            )
+            s += " "
+            n_children = len(tree.children)
+
+            for child_idx, child in enumerate(tree.children, 1):
+                s += f"\n{indent * child.level}" if pretty else ""
+                s += build_str(child, is_last_child=child_idx == n_children)
+
+            s += (
+                f"\n{indent * tree.level}"
+                if pretty and end_on_newline and tree.children
+                else ""
+            )
+            s += end_parens
+            s += node_sep if not is_last_child else ""
+            return s
+
+        return build_str(self)
+
+    def get_distance(self, tgt_tree: Tree, config=None):
+        """Calculate the distance between self and target tree.
+        :return: the tree edit distance for the given trees and the required operations
+        """
+        config = AstredConfig() if config is None else config
+        apted = APTED(self, tgt_tree, config)
+        dist = apted.compute_edit_distance()
+        opts = apted.compute_edit_mapping()
+
+        return dist, opts
 
     @classmethod
-    def from_stanza(cls, sentence, label="deprel"):
-        """ Converts a parsed Stanza sentence into a GenericTree
-        :param sentence: stanza sentence
-        :param label: which Stanza Word property to use as labels
-        :return: GenericTree based on spaCy span
-        """
+    def draw_trees(cls, *trees, **to_string_kwargs):
+        strings = [tree.to_string(**to_string_kwargs) for tree in trees]
+        try:
+            nltk_trees = [NltkTree.fromstring(s) for s in strings]
+        except Exception as e:
+            raise ValueError(
+                "When calling 'draw_trees' on a subclass of TreeBase, the implementation of 'to_string'"
+                " MUST be compatible with NLTK's Tree.fronstring method."
+                " See the stacktrace above for more details."
+            ) from e
+
+        draw_trees(*nltk_trees)
+
+
+@dataclass
+class Tree(TreeBase):
+    def __repr__(self):
+        return (
+            f"{self.__class__.__name__}(node={self.node.text}, children={[w.node.text for w in self.children]},"
+            f" level={self.level})"
+        )
+
+    def __post_init__(self):
+        super(Tree, self).__post_init__()
+        self.attach_self_to_node()
+
+    def attach_self_to_node(self):
+        """We do not want created subtrees (e.g. SpanTrees) to overwrite a word's tree attribute."""
+        if not self.node.tree:
+            self.node.tree = self
+
+    @classmethod
+    def from_sentence(cls, sentence: Any):
+        sent_root = [word for word in sentence if word.is_root]
+        n_roots = len(sent_root)
+
+        if n_roots != 1:
+            raise ValueError(
+                f"A sentence must have exactly only root word to create a {cls.__name__}."
+                f" Currently {n_roots} are given."
+            )
+        sent_root = sent_root[0]
+        return cls.from_span(sentence, sent_root, sent_root)
+
+    @classmethod
+    def from_span(cls, span, span_root, doc=None):
+        if span_root not in span:
+            raise ValueError("'span_root' must be an element of 'span'")
 
         def get_children(head_idx):
-            return [word for word in sentence.words if word.head == head_idx]
+            return [word for word in span if word.head == head_idx]
 
-        def parse(root, is_root=False, level=-1):
+        def parse(root, level=-1):
             children = get_children(int(root.id))
-            # Only get the main label, not any subtypes
-            # See https://universaldependencies.org/ext-dep-index.html
-            root_label = getattr(root, label).split(":")[0]
             level += 1
             child_trees = [parse(n, level=level) for n in children] if children else []
-            return cls(
-                root_label,
-                is_root=is_root,
-                text=root.text,
-                word_order_idx=int(root.id) - 1,
-                add_word_order_tree=True,
-                level=level,
-                children=child_trees,
-            )
+            return cls(root, children=child_trees, level=level, doc=doc)
 
-        return parse(get_children(0)[0], is_root=True)
-
-    @classmethod
-    def from_string(cls, text, lang_or_model="en", **kwargs):
-        """ Convert a string into a GenericTree
-
-        :param text: text to process
-        :param lang_or_model: stanfordnlp language or model
-        :param tokenize_pretokenized: whether or not the text is pretokenized and presegmented
-        :param nlp: an existing NLP instance.
-        :param use_gpu:
-        :return: a GenericTree, representing the given 'text'
-        """
-
-        if lang_or_model not in cls.NLPS:
-            cls.NLPS[lang_or_model] = load_nlp(lang_or_model, **kwargs)
-
-        doc = cls.NLPS[lang_or_model](text)
-        main_sent = doc.sentences[0]
-        return cls.from_stanza(main_sent)
-
-    @classmethod
-    def convert(cls, val, is_root=True, level=0):
-        """ Used by super class when copying the tree """
-        if isinstance(val, GenericTree):
-            children = [cls.convert(child) for child in val.children]
-            return cls(
-                val._label,
-                is_root=val.is_root,
-                text=val.text,
-                word_order_idx=val.word_order_idx,
-                add_word_order_tree=val.add_word_order_tree,
-                level=val.level,
-                children=children,
-            )
-        else:
-            return val
-
-    @classmethod
-    def init_nlp(cls, lang, nlp):
-        if lang not in cls.NLPS:
-            cls.NLPS[lang] = nlp
+        return parse(span_root)

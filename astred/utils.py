@@ -1,46 +1,51 @@
-from copy import deepcopy
+from typing import List
 
 import stanza
-from apted import APTED, helpers
-from nltk.draw import TreeView
-from nltk.tree import ParentedTree
-
-_NLPS = {}
 
 
-def draw_trees(*trees: ParentedTree, include_word_idx: bool = False):
-    """Open a new window containing a graphical diagram of the given
-    trees. Optionally prepend the word index to the labels so
-    that it is visually more clear which word is where in the tree
+def unique_list(groups: List):
+    """Filter list of lists so that:
+       - the sublists only contain unique items (no duplicates);
+       - the sublists themselves are unique (two identical sublists cannot exists)"""
 
-    :rtype: None
-    """
-    word_idxs_trees = []
-    if include_word_idx:
-        for tree in trees:
-            tree_copy = deepcopy(tree)
-            tree_copy.add_word_idx_to_label()
-            word_idxs_trees.append(tree_copy)
-    else:
-        word_idxs_trees = trees
+    def unique(main_list: List):
+        uniq = []
+        uniq_ids = set()
+        for item in main_list:
+            is_list = isinstance(item, list)
+            item = [item] if not is_list else item
+            item_repr = tuple(
+                [f"{i.doc.side if i.doc else 'none'}-{i.id}" for i in item]
+            )
+            if item_repr not in uniq_ids:
+                uniq.append(item[0] if not is_list else item)
+                uniq_ids.add(item_repr)
+        return uniq
 
-    TreeView(*word_idxs_trees).mainloop()
+    if isinstance(groups[0], list):
+        # Make sure that items in sublists are unique
+        groups = [unique(group) for group in groups]
+
+    # Make sure that sublists themselves are unique
+    return unique(groups)
 
 
-def get_distance(src_tree, tgt_tree):
-    """Calculate the distance between the source and target tree.
-    :return: the tree edit distance for the given trees and optionally the required operations
-    """
-    src_tree_str = src_tree.to_string(parens="{}")
-    tree_src_apted = helpers.Tree.from_text(src_tree_str)
-    tgt_tree_str = tgt_tree.to_string(parens="{}")
-    tgt_tree_apted = helpers.Tree.from_text(tgt_tree_str)
+def rebase_to_idxs(idxs: List[int]):
+    """ Convert values to indices. This ensure that there are no strange gaps
+        between sequence alignments (e.g. when an index is not word-aligned) """
+    l_sort = sorted(list(set(idxs)))
 
-    apted = APTED(tree_src_apted, tgt_tree_apted)
-    dist = apted.compute_edit_distance()
-    opts = apted.compute_edit_mapping()
+    return [l_sort.index(x) for x in idxs]
 
-    return dist, opts
+
+def pair_combs(all_pairs, min_length=2):
+    n_pairs = len(all_pairs)
+    for i in range(n_pairs, min_length - 1, -1):
+        for j in range(n_pairs - i + 1):
+            pairs = all_pairs[j : j + i]
+            if any(item.is_null for pair in pairs for item in pair):
+                continue
+            yield pairs
 
 
 def load_nlp(
@@ -49,13 +54,10 @@ def load_nlp(
     use_gpu: bool = True,
     logging_level: str = "INFO",
 ):
-    identifier = f"{lang}_{tokenize_pretokenized}_{use_gpu}"
-    if identifier not in _NLPS:
-        _NLPS[identifier] = stanza.Pipeline(
-            processors="tokenize,mwt,pos,lemma,depparse",
-            lang=lang,
-            tokenize_pretokenized=tokenize_pretokenized,
-            use_gpu=use_gpu,
-            logging_level=logging_level,
-        )
-    return _NLPS[identifier]
+    return stanza.Pipeline(
+        processors="tokenize,mwt,pos,lemma,depparse",
+        lang=lang,
+        tokenize_pretokenized=tokenize_pretokenized,
+        use_gpu=use_gpu,
+        logging_level=logging_level,
+    )

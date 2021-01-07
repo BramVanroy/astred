@@ -1,0 +1,60 @@
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, NamedTuple
+
+from .base import Crossable
+
+
+@dataclass(repr=False)
+class Word(Crossable):
+    text: str = field(repr=False, default=None)
+    lemma: str = field(repr=False, default=None)
+    head: int = field(repr=False, default=None)
+    deprel: str = field(repr=False, default=None)
+    upos: str = field(repr=False, default=None)
+    xpos: str = field(repr=False, default=None)
+    feats: str = field(repr=False, default=None)
+    is_root: bool = field(repr=False, default=False)
+
+    seq_group: Any = field(default=None, init=False, compare=False, repr=False)
+    id_in_seq_group: int = field(default=None, init=False, compare=False, repr=False)
+
+    sacr_group: Any = field(default=None, init=False, compare=False, repr=False)
+    id_in_sacr_group: int = field(default=None, init=False, compare=False, repr=False)
+
+    tree: Any = field(default=None, init=False, compare=False, repr=False)
+    connected: List[Word] = field(default_factory=list, init=False, repr=False)
+    connected_repr: str = field(default=None, init=False, repr=False)
+
+    def __post_init__(self):
+        super(Word, self).__post_init__()
+        if self.is_null and not isinstance(self, Null):
+            raise ValueError(f"Only {Null.__name__} words can be set to is_null=True")
+        elif not self.is_null and isinstance(self, Null):
+            raise ValueError(f"{Null.__name__} words must be set to is_null=True")
+
+    def changes(self, attr="deprel") -> Dict[int, bool]:
+        attr_val = getattr(self, attr)
+        return {word.id: attr_val != getattr(word, attr) for word in self.aligned}
+
+    def num_changes(self, attr="deprel") -> int:
+        # `changes()` is a dict of int, bool but summing works due to implicit casting
+        return sum(self.changes(attr).values())
+
+
+class Null(Word):
+    def __init__(self):
+        super().__init__(id=0, text="[[NULL]]", is_null=True)
+
+
+WordPair = NamedTuple("WordPair", [("src", Word), ("tgt", Word)])
+
+
+def spanpair_to_wordpairs(spanpair) -> List[WordPair]:
+    wpairs = []
+    for word in spanpair.src:
+        for aligned_w in word.aligned:
+            if aligned_w in spanpair.tgt:
+                wpairs.append(WordPair(word, aligned_w))
+    return wpairs
