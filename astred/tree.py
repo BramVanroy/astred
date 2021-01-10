@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from abc import ABC
 from dataclasses import dataclass, field
 from typing import Any, List, Tuple, Union
 
@@ -13,34 +12,64 @@ from .enum import EditOperation
 
 
 class AstredConfig(AptedConfig):
-    def __init__(self, attrs="connected_repr", attrs_sep="-"):
-        self.attrs = [attrs] if isinstance(attrs, str) else attrs
-        self.attrs_sep = attrs_sep
+    def __init__(self, attr="connected_repr", costs=None):
+        self.attr = attr
+        if costs and not all(op in costs for op in (EditOperation.DELETION, EditOperation.INSERTION, EditOperation.RENAME)):
+            raise ValueError("when 'costs' is given, it must contain values for EditOperations 'DELETION',"
+                             " 'INSERTION', and 'RENAME'. If not given, it will default to a cost of 1"
+                             " for all operations.")
 
-    def node_repr(self, tree):
-        return (
-            self.attrs_sep.join([str(getattr(tree.node, attr)) for attr in self.attrs])
-            if tree
-            else None
-        )
+        self.costs = {op: 1 for op in (EditOperation.DELETION, EditOperation.INSERTION, EditOperation.RENAME)}\
+            if costs is None else costs
+        self.costs[EditOperation.MATCH] = 0
 
-    def rename(self, node1: Tree, node2: Tree):
-        return int(self.node_repr(node1) != self.node_repr(node2))
+    def rename(self, node1: Tree, node2: Tree) -> int:
+        return self.costs[EditOperation.RENAME] if getattr(node1.node, self.attr) != getattr(node2.node, self.attr) else 0
 
-    def children(self, node):
-        """Returns children of node"""
-        return getattr(node, "children", [])
+    def delete(self, node: Tree) -> int:
+        """Calculates the cost of deleting a node"""
+        return self.costs[EditOperation.DELETION]
+
+    def insert(self, node: Tree) -> int:
+        """Calculates the cost of inserting a node"""
+        return self.costs[EditOperation.INSERTION]
 
 
 @dataclass
-class TreeBase(ABC):
+class Tree:
     node: Any
-    children: List[TreeBase] = field(default_factory=list)
+    children: List[Tree] = field(default_factory=list)
     level: int = field(default=0)
     parent: Tree = field(default=None, repr=False, init=False)
     root: Tree = field(default=None, repr=False, init=False)
     doc: Any = field(default=None, repr=False)
     astred_op: EditOperation = field(default=None, init=False)
+
+    def __repr__(self):
+        return (
+            f"{self.__class__.__name__}(node={self.node.text}, children={[w.node.text for w in self.children]},"
+            f" level={self.level})"
+        )
+
+    @property
+    def ted_config(self):
+        return self.doc.aligned_sentences.ted_config if self.doc else None
+
+    @property
+    def astred_cost(self) -> int:
+        return self.ted_config.costs[self.astred_op] if self.astred_op else None
+
+    @property
+    def depth(self):
+        def max_depth(node):
+            if not node.children:
+                return 1
+
+            depths = [max_depth(n) for n in node.children]
+
+            return max(depths) + 1
+
+        return max_depth(self)
 
     def __post_init__(self):
         if any(not isinstance(child, self.__class__) for child in self.children):
@@ -50,6 +79,8 @@ class TreeBase(ABC):
         self.attach_self_to_children()
         if self.node.is_root:
             self.attach_self_to_subtrees()
+
+        self.attach_self_to_node()
 
     def as_embedded_tuples(self):
         """Create embedded/recursive tuples in the form of (ROOT, [(child1, [subchildren...]), (child2, [subchildren2...]), ...])
@@ -93,6 +124,11 @@ class TreeBase(ABC):
     def attach_self_to_children(self):
         for subtree in self.children:
             subtree.parent = self
+
+    def attach_self_to_node(self):
+        """We do not want created subtrees (e.g. SpanTrees) to overwrite a word's tree attribute."""
+        if not self.node.tree:
+            self.node.tree = self
 
     def attach_self_to_subtrees(self):
         for subtree in self.subtrees(include_self=False):
@@ -155,38 +191,6 @@ class TreeBase(ABC):
         return dist, opts
 
     @classmethod
-    def draw_trees(cls, *trees, **to_string_kwargs):
-        strings = [tree.to_string(**to_string_kwargs) for tree in trees]
-        try:
-            nltk_trees = [NltkTree.fromstring(s) for s in strings]
-        except Exception as e:
-            raise ValueError(
-                "When calling 'draw_trees' on a subclass of TreeBase, the implementation of 'to_string'"
-                " MUST be compatible with NLTK's Tree.fronstring method."
-                " See the stacktrace above for more details."
-            ) from e
-
-        draw_trees(*nltk_trees)
-
-
-@dataclass
-class Tree(TreeBase):
-    def __repr__(self):
-        return (
-            f"{self.__class__.__name__}(node={self.node.text}, children={[w.node.text for w in self.children]},"
-            f" level={self.level})"
-        )
-
-    def __post_init__(self):
-        super(Tree, self).__post_init__()
-        self.attach_self_to_node()
-
-    def attach_self_to_node(self):
-        """We do not want created subtrees (e.g. SpanTrees) to overwrite a word's tree attribute."""
-        if not self.node.tree:
-            self.node.tree = self
-
-    @classmethod
     def from_sentence(cls, sentence: Any):
         sent_root = [word for word in sentence if word.is_root]
         n_roots = len(sent_root)
@@ -197,7 +201,7 @@ class Tree(TreeBase):
                 f" Currently {n_roots} are given."
             )
         sent_root = sent_root[0]
-        return cls.from_span(sentence, sent_root, sent_root)
+        return cls.from_span(sentence, sent_root, sentence)
 
     @classmethod
     def from_span(cls, span, span_root, doc=None):
@@ -214,3 +218,17 @@ class Tree(TreeBase):
             return cls(root, children=child_trees, level=level, doc=doc)
 
         return parse(span_root)
+
+    @classmethod
+    def draw_trees(cls, *trees, **to_string_kwargs):
+        strings = [tree.to_string(**to_string_kwargs) for tree in trees]
+        try:
+            nltk_trees = [NltkTree.fromstring(s) for s in strings]
+        except Exception as e:
+            raise ValueError(
+                "When calling 'draw_trees' on a subclass of TreeBase, the implementation of 'to_string'"
+                " MUST be compatible with NLTK's Tree.fronstring method."
+                " See the stacktrace above for more details."
+            ) from e
+
+        draw_trees(*nltk_trees)

@@ -69,7 +69,7 @@ class AlignedSentences:
                 IdxPair(*map(int, align.split("-")))
                 for align in self.word_aligns.split(" ")
             ]
-
+        self.attach_self_to_sentences()
         self.attach_sentences()
 
         # +1 because 0-index is reserved for NULL
@@ -101,8 +101,8 @@ class AlignedSentences:
             self.set_cross(self.aligned_sacr_spans, "sacr_cross")
 
             # TED
-            self.set_ted()
             self.set_connected()
+            self.set_ted()
 
     @property
     def idxs_d(self) -> Dict[str, Set[int]]:
@@ -127,6 +127,10 @@ class AlignedSentences:
         self.src.side = Side.SRC
         self.src.aligned_sentence = self.tgt
         self.tgt.side = Side.TGT
+
+    def attach_self_to_sentences(self):
+        self.src.aligned_sentences = self
+        self.tgt.aligned_sentences = self
 
     @staticmethod
     def attach_pairs(pairs):
@@ -174,7 +178,7 @@ class AlignedSentences:
             src_words = [_w for _w in group if _w.side == Side.SRC]
             return "|".join(
                 [
-                    f"{getattr(src, attr)}:{','.join([getattr(tgt, attr) for tgt in src.aligned if not tgt.is_null])}"
+                    f"{src.id}.{getattr(src, attr)}:{','.join([str(tgt.id) + '.' + getattr(tgt, attr) for tgt in src.aligned if not tgt.is_null])}"
                     for src in src_words
                     if not src.is_null
                 ]
@@ -365,7 +369,7 @@ class AlignedSentences:
         # when an item is aligned with multiple items and they do not belong to a larger group together,
         # then those seperate alignments will be separate groups.
         for p in self.aligned_words:
-            if p.src.id in found["src"] or p.tgt.id in found["tgt"]:
+            if (p.src.id in found["src"] or p.tgt.id in found["tgt"]) and not (p.src.is_null or p.tgt.is_null):
                 continue
 
             src_word_groups.append([p.src])
@@ -435,8 +439,8 @@ class AlignedSentences:
 
         for src_match, tgt_match in self.ted_ops:
             # node repr as used by the config class to calculate TED
-            src_repr = self.ted_config.node_repr(src_match)
-            tgt_repr = self.ted_config.node_repr(tgt_match)
+            src_repr = src_match.node.connected_repr if src_match else None
+            tgt_repr = tgt_match.node.connected_repr if tgt_match else None
 
             if src_repr == tgt_repr:
                 src_match.astred_op = EditOperation.MATCH

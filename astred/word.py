@@ -15,7 +15,6 @@ class Word(Crossable):
     upos: str = field(repr=False, default=None)
     xpos: str = field(repr=False, default=None)
     feats: str = field(repr=False, default=None)
-    is_root: bool = field(repr=False, default=False)
 
     seq_group: Any = field(default=None, init=False, compare=False, repr=False)
     id_in_seq_group: int = field(default=None, init=False, compare=False, repr=False)
@@ -26,6 +25,10 @@ class Word(Crossable):
     tree: Any = field(default=None, init=False, compare=False, repr=False)
     connected: List[Word] = field(default_factory=list, init=False, repr=False)
     connected_repr: str = field(default=None, init=False, repr=False)
+
+    @property
+    def is_root(self):
+        return self.head == 0
 
     def __post_init__(self):
         super(Word, self).__post_init__()

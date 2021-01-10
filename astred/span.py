@@ -41,7 +41,7 @@ class Span(Crossable, SpanMixin):
             )
 
         if self.is_valid_subtree:
-            self.tree = Tree.from_span(self, self.items_per_level[self.root_level][0])
+            self.tree = Tree.from_span(self, self.items_per_level[self.root_level][0], self.doc)
 
         if self.attach:
             self.attach_self_to_words()

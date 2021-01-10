@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Any
 
 from stanza.models.common.doc import Document as StanzaDoc
 from stanza.models.common.doc import Sentence as StanzaSentence
@@ -22,9 +22,11 @@ logger = logging.getLogger("astred")
 class Sentence(SpanMixin):
     words: List[Word] = field(default_factory=list, repr=False)
     side: Optional[Side] = field(default=None)
+
     tree: Tree = field(default=None, compare=False, repr=False, init=False)
     merged_tree: Tree = field(default=None, compare=False, repr=False, init=False)
     _aligned_sentence: Sentence = field(default=None, repr=False, init=False)
+    aligned_sentences: Any = field(default=None, repr=False, init=False)
     root: Word = field(default=None, repr=False, init=False)
 
     seq_spans: List[Span] = field(
@@ -96,7 +98,6 @@ class Sentence(SpanMixin):
                     upos=w.upos,
                     xpos=w.xpos,
                     feats=w.feats if w.feats else "_",
-                    is_root=int(w.head) == 0,
                 )
                 for w in sentence.words
             ]

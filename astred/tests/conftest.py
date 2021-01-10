@@ -6,28 +6,28 @@ from astred import AlignedSentences, Sentence, Word
 @fixture
 def sent1_4_words():
     return Sentence(
-        [Word(id=i, text=c, is_root=i == 1) for i, c in enumerate("ABCD", 1)]
+        [Word(id=i, text=c) for i, c in enumerate("ABCD", 1)]
     )
 
 
 @fixture
 def sent2_4_words():
     return Sentence(
-        [Word(id=i, text=c, is_root=i == 1) for i, c in enumerate("ABCD", 1)]
+        [Word(id=i, text=c) for i, c in enumerate("ABCD", 1)]
     )
 
 
 @fixture
 def sent3_6_words():
     return Sentence(
-        [Word(id=i, text=c, is_root=i == 1) for i, c in enumerate("ABCDEF", 1)]
+        [Word(id=i, text=c) for i, c in enumerate("ABCDEF", 1)]
     )
 
 
 @fixture
 def sent4_6_words():
     return Sentence(
-        [Word(id=i, text=c, is_root=i == 1) for i, c in enumerate("ABCDEF", 1)]
+        [Word(id=i, text=c) for i, c in enumerate("ABCDEF", 1)]
     )
 
 
