@@ -70,6 +70,14 @@ class Sentence(SpanMixin):
         self.words = [Null()] + self.words
         self.attach_self_to_words()
 
+    @property
+    def no_null_seq_spans(self):
+        return [s for s in self.seq_spans if not s.is_null]
+
+    @property
+    def no_null_sacr_spans(self):
+        return [s for s in self.sacr_spans if not s.is_null]
+
     def attach_self_to_words(self):
         for word in self.words:
             word.doc = self

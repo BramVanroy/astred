@@ -33,7 +33,7 @@ class Crossable:
             )
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(id={self.id}, is_null={self.is_null}, side={self.side})"
+        return f"{self.__class__.__name__}(id={self.id}, side={self.side}, text={self.text})"
 
     @property
     def side(self) -> Side:
@@ -66,7 +66,7 @@ class Crossable:
 class SpanMixin(ABC):
     @property
     def text(self):
-        return " ".join([w.text for w in self if not w.is_null])
+        return " ".join([w.text for w in self.no_null_words])
 
     @property
     def word_idxs(self):
@@ -84,6 +84,10 @@ class SpanMixin(ABC):
     @property
     def num_changes(self, attr="deprel"):
         return sum([w.num_changes(attr=attr) for w in self])
+
+    @property
+    def no_null_words(self):
+        return [w for w in self.words if not w.is_null]
 
     @abstractmethod
     def attach_self_to_words(self):
