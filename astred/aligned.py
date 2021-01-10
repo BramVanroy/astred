@@ -81,7 +81,6 @@ class AlignedSentences:
             WordPair(self.src[align.src], self.tgt[align.tgt])
             for align in self.word_aligns
         ]
-
         self.attach_pairs(self.aligned_words)
         self.set_cross(self.aligned_words, "word_cross")
 
@@ -310,7 +309,9 @@ class AlignedSentences:
             found["src"].update(s_ids)
             found["tgt"].update(t_ids)
             s_words, t_words = map(list, spair[:-1])  # Exclude mwe
+            print("found", s_words)
             src_word_groups.append(s_words)
+            print("found all", src_word_groups)
             tgt_word_groups.append(t_words)
             sacr_spans.append((min(s_ids), min(t_ids), spair.mwe))
 
@@ -320,7 +321,7 @@ class AlignedSentences:
 
             # If any of the src or tgt ids have already been found as a good match, continue
             # because a word can only ever belong to one group
-            # single pairs should always be accepted
+            # single pairs should always be accepted but are dealt with separately in "create_spans"
             if not src_ids.isdisjoint(found["src"]) or not tgt_ids.isdisjoint(
                 found["tgt"]
             ):
@@ -334,6 +335,9 @@ class AlignedSentences:
                     src_ids, tgt_ids = map(
                         set, zip(*[(p.src.id, p.tgt.id) for p in pairs])
                     )
+                    if not src_ids.isdisjoint(found["src"]) or not tgt_ids.isdisjoint(found["tgt"]):
+                        continue
+
                     src_words, tgt_words = map(list, zip(*pairs))
 
                     temp_src = Span(
@@ -369,7 +373,7 @@ class AlignedSentences:
         # when an item is aligned with multiple items and they do not belong to a larger group together,
         # then those seperate alignments will be separate groups.
         for p in self.aligned_words:
-            if (p.src.id in found["src"] or p.tgt.id in found["tgt"]) and not (p.src.is_null or p.tgt.is_null):
+            if (p.src.id in found["src"] and p.tgt.id in found["tgt"]) and not (p.src.is_null or p.tgt.is_null):
                 continue
 
             src_word_groups.append([p.src])
