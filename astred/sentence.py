@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import List, Optional, Union, Any
+from typing import Any, List, Optional, Union
 
 from stanza.models.common.doc import Document as StanzaDoc
 from stanza.models.common.doc import Sentence as StanzaSentence
@@ -29,12 +29,8 @@ class Sentence(SpanMixin):
     aligned_sentences: Any = field(default=None, repr=False, init=False)
     root: Word = field(default=None, repr=False, init=False)
 
-    seq_spans: List[Span] = field(
-        default_factory=list, compare=False, repr=False, init=False
-    )
-    sacr_spans: List[Span] = field(
-        default_factory=list, compare=False, repr=False, init=False
-    )
+    seq_spans: List[Span] = field(default_factory=list, compare=False, repr=False, init=False)
+    sacr_spans: List[Span] = field(default_factory=list, compare=False, repr=False, init=False)
 
     def __repr__(self):
         return (
@@ -87,9 +83,7 @@ class Sentence(SpanMixin):
         # doc can either be a Sentence or a Doc. In the latter case we only use the first sentence in it.
         if isinstance(doc, StanzaDoc):
             if len(doc.sentences) > 1:
-                logger.warning(
-                    "More than one sentence found in this stanza parse. Will only use the first once."
-                )
+                logger.warning("More than one sentence found in this stanza parse. Will only use the first once.")
             sentence = doc.sentences[0]
         else:
             sentence = doc
@@ -112,9 +106,7 @@ class Sentence(SpanMixin):
         )
 
     @classmethod
-    def from_text(
-        cls, text: str, nlp_or_lang: Union[StanzaPipeline, str], **kwargs
-    ):
+    def from_text(cls, text: str, nlp_or_lang: Union[StanzaPipeline, str], **kwargs):
         if isinstance(nlp_or_lang, StanzaPipeline):
             return cls.from_stanza(nlp_or_lang(text))
         else:

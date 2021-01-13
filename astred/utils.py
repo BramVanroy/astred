@@ -1,4 +1,4 @@
-from typing import List
+from typing import Generator, List
 
 import stanza
 
@@ -14,9 +14,7 @@ def unique_list(groups: List):
         for item in main_list:
             is_list = isinstance(item, list)
             item = [item] if not is_list else item
-            item_repr = tuple(
-                [f"{i.doc.side if i.doc else 'none'}-{i.id}" for i in item]
-            )
+            item_repr = tuple([f"{i.doc.side if i.doc else 'none'}-{i.id}" for i in item])
             if item_repr not in uniq_ids:
                 uniq.append(item[0] if not is_list else item)
                 uniq_ids.add(item_repr)
@@ -38,7 +36,7 @@ def rebase_to_idxs(idxs: List[int]):
     return [l_sort.index(x) for x in idxs]
 
 
-def pair_combs(all_pairs, min_length=2):
+def pair_combs(all_pairs: List, min_length: int = 2) -> Generator[List, None, None]:
     n_pairs = len(all_pairs)
     for i in range(n_pairs, min_length - 1, -1):
         for j in range(n_pairs - i + 1):
@@ -49,10 +47,7 @@ def pair_combs(all_pairs, min_length=2):
 
 
 def load_nlp(
-    lang: str,
-    tokenize_pretokenized: bool = True,
-    use_gpu: bool = True,
-    logging_level: str = "INFO",
+    lang: str, tokenize_pretokenized: bool = True, use_gpu: bool = True, logging_level: str = "INFO",
 ):
     return stanza.Pipeline(
         processors="tokenize,mwt,pos,lemma,depparse",

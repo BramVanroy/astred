@@ -14,17 +14,26 @@ from .enum import EditOperation
 class AstredConfig(AptedConfig):
     def __init__(self, attr="connected_repr", costs=None):
         self.attr = attr
-        if costs and not all(op in costs for op in (EditOperation.DELETION, EditOperation.INSERTION, EditOperation.RENAME)):
-            raise ValueError("when 'costs' is given, it must contain values for EditOperations 'DELETION',"
-                             " 'INSERTION', and 'RENAME'. If not given, it will default to a cost of 1"
-                             " for all operations.")
+        if costs and not all(
+            op in costs for op in (EditOperation.DELETION, EditOperation.INSERTION, EditOperation.RENAME)
+        ):
+            raise ValueError(
+                "when 'costs' is given, it must contain values for EditOperations 'DELETION',"
+                " 'INSERTION', and 'RENAME'. If not given, it will default to a cost of 1"
+                " for all operations."
+            )
 
-        self.costs = {op: 1 for op in (EditOperation.DELETION, EditOperation.INSERTION, EditOperation.RENAME)}\
-            if costs is None else costs
+        self.costs = (
+            {op: 1 for op in (EditOperation.DELETION, EditOperation.INSERTION, EditOperation.RENAME)}
+            if costs is None
+            else costs
+        )
         self.costs[EditOperation.MATCH] = 0
 
     def rename(self, node1: Tree, node2: Tree) -> int:
-        return self.costs[EditOperation.RENAME] if getattr(node1.node, self.attr) != getattr(node2.node, self.attr) else 0
+        return (
+            self.costs[EditOperation.RENAME] if getattr(node1.node, self.attr) != getattr(node2.node, self.attr) else 0
+        )
 
     def delete(self, node: Tree) -> int:
         """Calculates the cost of deleting a node"""
@@ -73,9 +82,7 @@ class Tree:
 
     def __post_init__(self):
         if any(not isinstance(child, self.__class__) for child in self.children):
-            raise ValueError(
-                "A tree's children must have the same class as its parent."
-            )
+            raise ValueError("A tree's children must have the same class as its parent.")
         self.attach_self_to_children()
         if self.node.is_root:
             self.attach_self_to_subtrees()
@@ -146,8 +153,7 @@ class Tree:
     ):
         if len(parens) != 2:
             raise ValueError(
-                "'parens' must contain exactly two characters to use as"
-                " the start and end character respectively"
+                "'parens' must contain exactly two characters to use as" " the start and end character respectively"
             )
         start_parens, end_parens = parens[0], parens[-1]
 
@@ -168,11 +174,7 @@ class Tree:
                 s += f"\n{indent * child.level}" if pretty else ""
                 s += build_str(child, is_last_child=child_idx == n_children)
 
-            s += (
-                f"\n{indent * tree.level}"
-                if pretty and end_on_newline and tree.children
-                else ""
-            )
+            s += f"\n{indent * tree.level}" if pretty and end_on_newline and tree.children else ""
             s += end_parens
             s += node_sep if not is_last_child else ""
             return s

@@ -31,14 +31,10 @@ class Span(Crossable, SpanMixin):
             )
 
         if self.is_null and not isinstance(self, NullSpan):
-            raise ValueError(
-                f"Only {NullSpan.__name__} spans can be set to is_null=True"
-            )
+            raise ValueError(f"Only {NullSpan.__name__} spans can be set to is_null=True")
 
         if self.span_type is None or not isinstance(self.span_type, SpanType):
-            raise ValueError(
-                f"'span_type' must be one of {SpanType._member_names_} from {SpanType.__name__} enum"
-            )
+            raise ValueError(f"'span_type' must be one of {SpanType._member_names_} from {SpanType.__name__} enum")
 
         if self.is_valid_subtree:
             self.tree = Tree.from_span(self, self.items_per_level[self.root_level][0], self.doc)
@@ -67,10 +63,7 @@ class Span(Crossable, SpanMixin):
         except AttributeError:
             return None
 
-        return {
-            level: [word for word in self if word.tree.level == level]
-            for level in sorted(levels, reverse=True)
-        }
+        return {level: [word for word in self if word.tree.level == level] for level in sorted(levels, reverse=True)}
 
     @cached_property
     def root_level(self) -> Optional[int]:
@@ -97,11 +90,7 @@ class Span(Crossable, SpanMixin):
         if len(self.items_per_level[self.root_level]) > 1:
             return False
 
-        return not any(
-            w.head not in self.word_idxs
-            for w in self
-            if w.tree.level != self.root_level
-        )
+        return not any(w.head not in self.word_idxs for w in self if w.tree.level != self.root_level)
 
     @classmethod
     def sacr_from_seq(cls, span: Span, idx: int):
@@ -111,9 +100,7 @@ class Span(Crossable, SpanMixin):
 class NullSpan(Span):
     def __init__(self, null_word: Null, span_type: SpanType = None):
         if not null_word.is_null:
-            raise ValueError(
-                "words inside a NullSpan need to be Null words and can only be one single word."
-            )
+            raise ValueError("words inside a NullSpan need to be Null words and can only be one single word.")
         super().__init__(id=0, words=[null_word], span_type=span_type, is_null=True)
         self.seq_cross = None
 

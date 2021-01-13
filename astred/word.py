@@ -45,6 +45,9 @@ class Word(Crossable):
         # `changes()` is a dict of int, bool but summing works due to implicit casting
         return sum(self.changes(attr).values())
 
+    def avg_num_changes(self, attr="deprel") -> float:
+        return sum(self.changes(attr).values()) / len(self.changes(attr))
+
 
 class Null(Word):
     def __init__(self):

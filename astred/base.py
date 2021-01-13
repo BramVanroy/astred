@@ -14,9 +14,7 @@ class Crossable:
     doc: Any = field(default=None, repr=False)
 
     aligned: List[Crossable] = field(default_factory=list, init=False, repr=False)
-    aligned_directions: Dict[int, Direction] = field(
-        default_factory=dict, init=False, repr=False
-    )
+    aligned_directions: Dict[int, Direction] = field(default_factory=dict, init=False, repr=False)
     aligned_cross: Dict[int, int] = field(default_factory=dict, init=False, repr=False)
 
     is_null: bool = field(default=False)
@@ -28,9 +26,7 @@ class Crossable:
             raise ValueError("id cannot be 0 for non-null items")
 
         if self.__class__ == Crossable:
-            raise TypeError(
-                f"Cannot instantiate abstract class {self.__class__.__name__}."
-            )
+            raise TypeError(f"Cannot instantiate abstract class {self.__class__.__name__}.")
 
     def __repr__(self):
         return f"{self.__class__.__name__}(id={self.id}, side={self.side}, text={self.text})"
@@ -41,7 +37,7 @@ class Crossable:
 
     @property
     def avg_cross(self) -> float:
-        return mean(self.aligned_cross.values())
+        return mean(self.aligned_cross.values()) if self.aligned_cross else 0
 
     @property
     def cross(self) -> int:
@@ -50,11 +46,7 @@ class Crossable:
     def add_aligned(self, item):
         self.aligned.append(item)
         self.aligned_directions[item.id] = (
-            Direction.NEUTRAL
-            if item.id == self.id
-            else Direction.FORWARD
-            if item.id > self.id
-            else Direction.BACKWARD
+            Direction.NEUTRAL if item.id == self.id else Direction.FORWARD if item.id > self.id else Direction.BACKWARD
         )
         self.aligned_cross[item.id] = 0
 
