@@ -213,7 +213,6 @@ class AlignedSentences:
         def is_valid_sacr_pair(pair):
             is_valid = pair.src.is_valid_subtree and pair.tgt.is_valid_subtree or (self.allow_mwe and spanpair.mwe)
             is_valid = is_valid or (pair.src.is_null and pair.tgt.is_null)
-
             return is_valid
 
         src_word_groups = []
@@ -233,13 +232,17 @@ class AlignedSentences:
             src_ids = set([w.id for w in spanpair.src])
             tgt_ids = set([w.id for w in spanpair.tgt])
 
+            # Does this span pair contain just one source and one target word?
+            is_singles = len(spanpair.src) == 1 and len(spanpair.tgt) == 1
+
             # If any of the src or tgt ids have already been found as a good match, continue
             # because a word can only ever belong to one group
             # single pairs should always be accepted but are dealt with separately in "create_spans"
-            if not src_ids.isdisjoint(found["src"]) or not tgt_ids.isdisjoint(found["tgt"]):
+            # Always continue if this pair is a singles
+            if not is_singles and (not src_ids.isdisjoint(found["src"]) or not tgt_ids.isdisjoint(found["tgt"])):
                 continue
 
-            if is_valid_sacr_pair(spanpair):
+            if is_singles or is_valid_sacr_pair(spanpair):
                 add_found(spanpair, src_ids, tgt_ids)
             else:
                 wpairs = spanpair_to_wordpairs(spanpair)
@@ -309,8 +312,9 @@ class AlignedSentences:
             tgt_word_groups.append([p.tgt])
             spans.append((p.src.id, p.tgt.id, False))
 
+        spans = sorted(set(spans), key=operator.itemgetter(0, 1))
         src_idxs, tgt_idxs, mwes = zip(*spans)
-        spans = sorted(zip(rebase_to_idxs(src_idxs), rebase_to_idxs(tgt_idxs), mwes), key=operator.itemgetter(0, 1),)
+        spans = list(zip(rebase_to_idxs(src_idxs), rebase_to_idxs(tgt_idxs), mwes))
 
         # Convert src/tgt words in groups of words so that they appear in the same order as in the original sentence
         # So the first item will always be a Null word
