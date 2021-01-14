@@ -30,6 +30,10 @@ class Word(Crossable):
     def is_root(self):
         return self.head == 0
 
+    @property
+    def is_root_in_sacr_group(self):
+        return self.sacr_group.root is self
+
     def __post_init__(self):
         super(Word, self).__post_init__()
         if self.is_null and not isinstance(self, Null):

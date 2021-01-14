@@ -37,7 +37,7 @@ class Span(Crossable, SpanMixin):
             raise ValueError(f"'span_type' must be one of {SpanType._member_names_} from {SpanType.__name__} enum")
 
         if self.is_valid_subtree:
-            self.tree = Tree.from_span(self, self.items_per_level[self.root_level][0], self.doc)
+            self.tree = Tree.from_span(self, self.root, self.doc)
 
         if self.attach:
             self.attach_self_to_words()
@@ -64,6 +64,13 @@ class Span(Crossable, SpanMixin):
             return None
 
         return {level: [word for word in self if word.tree.level == level] for level in sorted(levels, reverse=True)}
+
+    @cached_property
+    def root(self):
+        if self.root_level is not None:
+            return self.items_per_level[self.root_level][0]
+        else:
+            return None
 
     @cached_property
     def root_level(self) -> Optional[int]:
