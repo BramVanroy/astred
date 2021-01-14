@@ -1,10 +1,12 @@
 import logging
+from collections import Counter, defaultdict
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Union
+from typing import List, Union
 
 import pandas as pd
+from scipy.stats import entropy
 from tqdm import tqdm
 
 from astred import AlignedSentences, Sentence, Word
@@ -17,6 +19,7 @@ NLP = {}
 
 
 def get_parser(lang):
+    lang = lang.split("-")[0] if "-" in lang else lang
     if lang not in NLP:
         NLP[lang] = load_nlp(lang, tokenize_pretokenized=True, logging_level="ERROR")
     return NLP[lang]
@@ -29,13 +32,17 @@ class MetricAdder:
     tgt_lang: str
     dout: Union[Path, str] = field(default=None)
     force_parsing: bool = field(default=False)
+    entropy_props: Union[str, List[str]] = field(default=("avg_word_cross", "avg_seq_cross", "avg_sacr_cross",
+                                                          "avg_num_changes", "astred_op", "is_root_in_sacr"))
     st_df: pd.DataFrame = field(default=None, init=False)
     tt_df: pd.DataFrame = field(default=None, init=False)
     sg_df: pd.DataFrame = field(default=None, init=False)
 
     def __post_init__(self):
         self.din = Path(self.din)
-        self.dout = Path(self.dout) if self.dout else None
+        self.dout = Path(self.dout) if self.dout else self.din
+
+        self.dout.mkdir(exist_ok=True)
 
         if not self.dout:
             logger.info("'dout' (output directory) not provided. Input files will be overwritten!")
@@ -48,9 +55,10 @@ class MetricAdder:
             logger.info("'force_parsing' enabled. Will parse segments regardless of information"
                         " that is already available.")
 
-        self.process_dir()
+        self.add_metrics()
+        self.add_entropy()
 
-    def process_dir(self):
+    def add_metrics(self):
         st_files = self.din.glob("*.st")
         files = [(f, f.with_suffix(".tt"), f.with_suffix(".sg")) for f in st_files]
 
@@ -74,7 +82,6 @@ class MetricAdder:
                 return [(int(idx) - 1, int(r["Id"]) - 1) for idx in r[id_str].split("+") if idx != "---"]
 
         aligns = sorted(set([item for sublist in group.apply(get_token_aligns, axis=1) for item in sublist]))
-
         min_src, min_tgt = map(min, zip(*aligns))
 
         return [(src - min_src, tgt - min_tgt) for src, tgt in aligns]
@@ -115,9 +122,12 @@ class MetricAdder:
             tgt_sent = self.create_sentence(self.tt_df.query(f"{self.seg_cols['tgt']}==@tseg_id"),
                                             self.tgt_lang if self.tgt_lang else row["TL"],
                                             side="tgt")
-
-            src_aligns = self.create_alignments(self.st_df.query(f"{self.seg_cols['src']}==@sseg_id"))
-            tgt_aligns = self.create_alignments(self.tt_df.query(f"{self.seg_cols['tgt']}==@tseg_id"), side="tgt")
+            try:
+                src_aligns = self.create_alignments(self.st_df.query(f"{self.seg_cols['src']}==@sseg_id"))
+                tgt_aligns = self.create_alignments(self.tt_df.query(f"{self.seg_cols['tgt']}==@tseg_id"), side="tgt")
+            except ValueError:
+                logging.error(f"No alignments found for {st.stem}, source segment {row_idx}. Skipping...")
+                return False
 
             assert src_aligns == tgt_aligns
 
@@ -139,16 +149,21 @@ class MetricAdder:
 
             self.add_word_metrics(aligned, (sseg_id, tseg_id))
 
-        self.sg_df.apply(process_segment, axis=1)
+            return True
 
-        try:
-            self.st_df.to_csv(self.dout.joinpath(st.name) if self.dout else st, sep="\t", encoding="utf-8", index=False)
-            self.tt_df.to_csv(self.dout.joinpath(tt.name) if self.dout else tt, sep="\t", encoding="utf-8", index=False)
-            self.sg_df.to_csv(self.dout.joinpath(sg.name) if self.dout else sg, sep="\t", encoding="utf-8", index=False)
-        except PermissionError as e:
-            raise PermissionError("Could not write to file (see trace above) because you either do not have"
-                                  " permissions to do so or because you have it opened in another program."
-                                  " Close the file and try again.") from e
+        success = self.sg_df.apply(process_segment, axis=1)
+        # Only write the file if at least one segment was processed successfully
+        if any(s for s in success):
+            try:
+                self.st_df.to_csv(self.dout.joinpath(st.name), sep="\t", encoding="utf-8", index=False)
+                self.tt_df.to_csv(self.dout.joinpath(tt.name), sep="\t", encoding="utf-8", index=False)
+                self.sg_df.to_csv(self.dout.joinpath(sg.name), sep="\t", encoding="utf-8", index=False)
+            except PermissionError as e:
+                raise PermissionError("Could not write to file (see trace above) because you either do not have"
+                                      " permissions to do so or because you have it opened in another program."
+                                      " Close the file and try again.") from e
+        else:
+            logging.error(f"Not a single segment in {st.stem} with alignments. No properties added, so not saving.")
 
     def add_word_metrics(self, aligned, seg_ids):
         df = None
@@ -182,8 +197,10 @@ class MetricAdder:
             df.loc[orig_idx, "id_in_sacr_group"] = word.id_in_sacr_group
             df.loc[orig_idx, "sacr_cross"] = word.sacr_group.cross
             df.loc[orig_idx, "avg_sacr_cross"] = word.sacr_group.avg_cross
+            df.loc[orig_idx, "is_root_in_sacr"] = word.is_root_in_sacr_group
 
-            df.loc[orig_idx, "astred_cost"] = word.tree.astred_cost if word.tree else 0
+            df.loc[orig_idx, "astred_cost"] = word.tree.astred_cost
+            df.loc[orig_idx, "astred_op"] = word.tree.astred_op
 
         for side_idx, seg_id in enumerate(seg_ids):
             df = self.st_df if side_idx == 0 else self.tt_df
@@ -195,6 +212,40 @@ class MetricAdder:
             orig_start_idx = sub.index[0]
             sub.reset_index(inplace=True)
             sub.apply(process_word, axis=1)
+
+    def add_entropy(self):
+        def get_files_per_text(fs):
+            per_text = defaultdict(list)
+            for p in fs:
+                per_text[p.stem.split("_")[1]].append(p)
+            return dict(per_text)
+
+        st_files = get_files_per_text(self.dout.glob("*.st"))
+
+        self.add_entropy_to_text(st_files)
+
+    def add_entropy_to_text(self, fs_per_text):
+        for text_name, files_of_text in fs_per_text.items():
+            dfs = {f: pd.read_csv(f, encoding="utf-8", sep="\t") for f in files_of_text}
+            df = pd.concat(dfs)
+
+            for word_id, sub in df.groupby("Id"):
+                for prop in self.entropy_props:
+                    entropy_prop = self.calc_entropy(sub, prop)
+
+                    # Probably not most efficient...
+                    for orig_df in dfs.values():
+                        orig_df.loc[orig_df["Id"] == word_id, f"H_{prop}"] = entropy_prop
+
+            for fname, orig_df in dfs.items():
+                orig_df.to_csv(self.dout.joinpath(fname.name), sep="\t", encoding="utf-8", index=False)
+
+    @staticmethod
+    def calc_entropy(df: pd.DataFrame, prop: str) -> float:
+        vals = df[prop]
+        total = len(vals)
+        probs = [c / total for c in Counter(vals).values()]
+        return round(entropy(probs, base=2), 4)
 
 
 if __name__ == "__main__":
@@ -221,5 +272,13 @@ if __name__ == "__main__":
              " index (head), and re-run this code to take into account those changes. Then, the sentences will not"
              " be automatically parsed, but the given (corrected) information is used to calculate the metrics."
              " If however, you wish to force parsing even if those values are set, you can enable this option."
+    )
+    cparser.add_argument(
+        "-e", "--entropy_props",
+        help="Columns to calculate entropy in the ST tables for each word. Entropy is calculated for every source"
+             " word in its context with respect to all the translations it has. Values will be written to new column"
+             " with 'H' before the original column name",
+        nargs="+",
+        default=("avg_word_cross", "avg_seq_cross", "avg_sacr_cross", "avg_num_changes", "astred_op", "is_root_in_sacr")
     )
     instance = MetricAdder(**vars(cparser.parse_args()))
