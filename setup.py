@@ -1,15 +1,12 @@
 from pathlib import Path
 from setuptools import setup
 
-with Path('README.rst').open(encoding='utf-8') as fhin:
-    long_description = fhin.read()
-
 setup(
     name='astred',
-    version='0.0.1',
+    version='0.1.0',
     description='A collection of syntactically aware metrics to calculate equivalence. Also provides useful utility'
                 ' scripts for those who work with dependency trees.',
-    long_description=long_description,
+    long_description=Path('README.rst').read_text(encoding="utf-8"),
     long_description_content_type='text/x-rst',
     keywords='nlp tree-edit-distance ted syntax compling computational-linguistics syntactic-distance translation',
     packages=['astred'],
@@ -23,7 +20,6 @@ setup(
         'Intended Audience :: Science/Research',
         'Topic :: Scientific/Engineering',
         'Topic :: Text Processing',
-        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Operating System :: OS Independent'
