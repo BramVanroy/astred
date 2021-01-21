@@ -144,7 +144,7 @@ class Tree:
     def to_string(
         self,
         attrs: Union[List[str], str] = "text",
-        attrs_sep: str = "-",
+        attrs_sep: str = ":",
         parens: Union[List[str], Tuple[str], str] = "()",
         pretty: bool = False,
         end_on_newline: bool = False,
