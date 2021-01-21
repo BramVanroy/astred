@@ -58,7 +58,11 @@ class AlignedSentences:
 
     def __post_init__(self):
         if isinstance(self.word_aligns, str):
-            self.word_aligns = [IdxPair(*map(int, align.split("-"))) for align in self.word_aligns.split(" ")]
+            try:
+                self.word_aligns = [IdxPair(*map(int, align.split("-"))) for align in self.word_aligns.split(" ")]
+            except ValueError as exc:
+                raise ValueError("The passed alignments could not be parsed successfully. Make sure that they are"
+                                 " written in the correct format as pairs of src_idx-tgt_idx") from exc
         elif not isinstance(self.word_aligns, IdxPair):
             self.word_aligns = [IdxPair(*val) for val in self.word_aligns]
 
