@@ -56,7 +56,9 @@ if __name__ == "__main__":
     cparser = argparse.ArgumentParser(description=__doc__)
     cparser.add_argument("src", help="Source text")
     cparser.add_argument("tgt", help="Target text")
-    cparser.add_argument("-l", "--lang", help="Language of text (language code)", default="en")
+    cparser.add_argument(
+        "-l", "--lang", help="Language of text (language code)", default="en"
+    )
     cparser.add_argument(
         "-t",
         "--pretokenized",
