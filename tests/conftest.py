@@ -33,26 +33,26 @@ def sent4_6_words():
 
 class TestAlignedSents:
     def case_no_cross(self, sent1_4_words, sent2_4_words):
-        return AlignedSentences(sent1_4_words, sent2_4_words, "0-0 1-1 2-2 3-3")
+        return AlignedSentences(sent1_4_words, sent2_4_words, "0-0 1-1 2-2 3-3", allow_mwe=False)
 
     def case_one_cross(self, sent1_4_words, sent2_4_words):
-        return AlignedSentences(sent1_4_words, sent2_4_words, "0-0 1-2 2-1 3-3")
+        return AlignedSentences(sent1_4_words, sent2_4_words, "0-0 1-2 2-1 3-3", allow_mwe=False)
 
     def case_long_distance_cross(self, sent1_4_words, sent2_4_words):
-        return AlignedSentences(sent1_4_words, sent2_4_words, "0-3 1-1 2-2 3-0")
+        return AlignedSentences(sent1_4_words, sent2_4_words, "0-3 1-1 2-2 3-0", allow_mwe=False)
 
     def case_three_words_seq(self, sent1_4_words, sent2_4_words):
-        return AlignedSentences(sent1_4_words, sent2_4_words, "0-1 1-2 2-3 3-0")
+        return AlignedSentences(sent1_4_words, sent2_4_words, "0-1 1-2 2-3 3-0", allow_mwe=False)
 
     def case_two_nulls(self, sent1_4_words, sent2_4_words):
-        return AlignedSentences(sent1_4_words, sent2_4_words, "0-1 1-2 2-3")
+        return AlignedSentences(sent1_4_words, sent2_4_words, "0-1 1-2 2-3", allow_mwe=False)
 
     def case_two_mwes_allowed(self, sent3_6_words, sent4_6_words):
         return AlignedSentences(
             sent3_6_words,
             sent4_6_words,
             "0-0 0-1 0-2 1-0 1-1 1-2 2-0 2-1 2-2 3-3 3-4 3-5 4-3 4-4 4-5 5-3 5-4 5-5",
-            allow_mwe=True,
+            allow_mwe=True
         )
 
     def case_two_mwes_disallowed(self, sent3_6_words, sent4_6_words):
@@ -60,6 +60,7 @@ class TestAlignedSents:
             sent3_6_words,
             sent4_6_words,
             "0-0 0-1 0-2 1-0 1-1 1-2 2-0 2-1 2-2 3-3 3-4 3-5 4-3 4-4 4-5 5-3 5-4 5-5",
+            allow_mwe=False
         )
 
     def case_mwe_and_cross(self, sent3_6_words, sent4_6_words):
@@ -72,5 +73,6 @@ class TestAlignedSents:
 
     def case_m_to_n(self, sent3_6_words, sent4_6_words):
         return AlignedSentences(
-            sent3_6_words, sent4_6_words, "0-0 1-1 1-2 2-1 3-3 3-4 3-5 4-3"
+            sent3_6_words, sent4_6_words, "0-0 1-1 1-2 2-1 3-3 3-4 3-5 4-3",
+            allow_mwe=False
         )

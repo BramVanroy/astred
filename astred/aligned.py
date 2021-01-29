@@ -24,7 +24,7 @@ class AlignedSentences:
     src: Sentence
     tgt: Sentence
     word_aligns: Union[List[Union[IdxPair, Tuple[int, int]]], str]
-    allow_mwe: bool = field(default=False)
+    allow_mwe: bool = field(default=True)
 
     aligned_words: List[WordPair] = field(default_factory=list, init=False, repr=False)
     word_cross: int = field(default=0, init=False)
@@ -155,14 +155,15 @@ class AlignedSentences:
         # MWE must consist of more than one source and target word
         # Later we then check whether each word is aligned with all other words in the group
         is_mwe = n_src > 1 and n_tgt > 1
+
         has_external_align = False
-        for pair in pairs:
-            aligned_to_src = set([w.id for w in pair.src.aligned])
-            aligned_to_tgt = set([w.id for w in pair.tgt.aligned])
+        for wordpair in pairs:
+            aligned_to_src = set([w.id for w in wordpair.src.aligned])
+            aligned_to_tgt = set([w.id for w in wordpair.tgt.aligned])
 
             # Check whetther each source word is attached to all target words
             # If it is set to False once, don't try to change it.
-            if is_mwe and aligned_to_src != src_ids or aligned_to_tgt != tgt_ids:
+            if is_mwe and (aligned_to_src != tgt_ids or aligned_to_tgt != src_ids):
                 is_mwe = False
 
             # Check whether the aligned indices of all words are a subset of the actual idxs.
