@@ -33,7 +33,9 @@ class MetricAdder:
     dout: Union[Path, str] = field(default=None)
     force_parsing: bool = field(default=False)
     entropy_props: Union[str, List[str]] = field(default=("avg_word_cross", "avg_seq_cross", "avg_sacr_cross",
-                                                          "avg_num_changes", "astred_op", "is_root_in_sacr"))
+                                                          "avg_num_changes", "word_cross", "seq_cross", "sacr_cross",
+                                                          "num_changes", "astred_op", "is_root_in_sacr"))
+    no_mwe: bool = field(default=False)
     st_df: pd.DataFrame = field(default=None, init=False)
     tt_df: pd.DataFrame = field(default=None, init=False)
     sg_df: pd.DataFrame = field(default=None, init=False)
@@ -59,17 +61,20 @@ class MetricAdder:
         self.add_entropy()
 
     def add_metrics(self):
+        logger.info("Calculating and adding metrics...")
         st_files = self.din.glob("*.st")
         files = [(f, f.with_suffix(".tt"), f.with_suffix(".sg")) for f in st_files]
 
-        for f_tuple in tqdm(files, unit="file"):
-            if any(not f.exists() or not f.is_file() for f in f_tuple):
-                logger.warning(
-                    f"A file name must have a '.st', '.tt', and '.sg' file. "
-                    f" Not the case for {f_tuple[0].stem}, so skipping..."
-                )
-
-            self.process_file(*f_tuple)
+        if files:
+            for f_tuple in tqdm(files, unit="file"):
+                if any(not f.exists() or not f.is_file() for f in f_tuple):
+                    logger.warning(
+                        f"A file name must have a '.st', '.tt', and '.sg' file. "
+                        f" Not the case for {f_tuple[0].stem}, so skipping..."
+                    )
+                self.process_file(*f_tuple)
+        else:
+            raise ValueError(f"No suitable files found in {self.din.resolve()}")
 
     def create_alignments(self, group, side="src"):
         # We need to get the indices of the opposite (tgt for src, src for tgt)
@@ -77,9 +82,15 @@ class MetricAdder:
 
         def get_token_aligns(r):
             if side == "src":
-                return [(int(r["Id"]) - 1, int(idx) - 1) for idx in r[id_str].split("+") if idx != "---"]
+                try:
+                    return [(int(r["Id"]) - 1, int(idx) - 1) for idx in r[id_str].split("+") if idx != "---"]
+                except KeyError:
+                    return [(int(r[self.id_cols["src"]]) - 1, int(idx) - 1) for idx in r[id_str].split("+") if idx != "---"]
             else:
-                return [(int(idx) - 1, int(r["Id"]) - 1) for idx in r[id_str].split("+") if idx != "---"]
+                try:
+                    return [(int(idx) - 1, int(r["Id"]) - 1) for idx in r[id_str].split("+") if idx != "---"]
+                except KeyError:
+                    return [(int(idx) - 1, int(r[self.id_cols["tgt"]]) - 1) for idx in r[id_str].split("+") if idx != "---"]
 
         aligns = sorted(set([item for sublist in group.apply(get_token_aligns, axis=1) for item in sublist]))
         min_src, min_tgt = map(min, zip(*aligns))
@@ -131,7 +142,7 @@ class MetricAdder:
 
             assert src_aligns == tgt_aligns
 
-            aligned = AlignedSentences(src_sent, tgt_sent, src_aligns)
+            aligned = AlignedSentences(src_sent, tgt_sent, src_aligns, allow_mwe=not self.no_mwe)
 
             self.sg_df.loc[row_idx, "alignments"] = " ".join(["-".join(map(str, pair)) for pair in src_aligns])
             self.sg_df.loc[row_idx, "word_cross"] = aligned.word_cross
@@ -214,6 +225,7 @@ class MetricAdder:
             sub.apply(process_word, axis=1)
 
     def add_entropy(self):
+        logger.info("Calculating and adding entropy values over texts...")
         def get_files_per_text(fs):
             per_text = defaultdict(list)
             for p in fs:
@@ -225,7 +237,7 @@ class MetricAdder:
         self.add_entropy_to_text(st_files)
 
     def add_entropy_to_text(self, fs_per_text):
-        for text_name, files_of_text in fs_per_text.items():
+        for text_name, files_of_text in tqdm(fs_per_text.items(), unit="text"):
             dfs = {f: pd.read_csv(f, encoding="utf-8", sep="\t") for f in files_of_text}
             df = pd.concat(dfs)
 
@@ -279,6 +291,19 @@ if __name__ == "__main__":
              " word in its context with respect to all the translations it has. Values will be written to new column"
              " with 'H' before the original column name",
         nargs="+",
-        default=("avg_word_cross", "avg_seq_cross", "avg_sacr_cross", "avg_num_changes", "astred_op", "is_root_in_sacr")
+        default=("avg_word_cross", "avg_seq_cross", "avg_sacr_cross", "avg_num_changes",
+                 "word_cross", "seq_cross", "sacr_cross", "num_changes",
+                 "astred_op", "is_root_in_sacr")
+    )
+    cparser.add_argument(
+        "--no_mwe",
+        help="By default, multi-word expressions (MWE) are considered as one sequence group (and are later refined"
+             " with SACr to ensure linguistically consistent groups). A MWE, in our case, is defined as a group in"
+             " which all source words are aligned with all target words and which contains more than one source and"
+             " more than one target words. (One-to-many/many-to-one alignments are a group by default.) You can"
+             " disallow the creation of MWE groups with this flag. Disallowing will likely lead to much higher"
+             " seq_cross and sacr_cross values.",
+        default=False,
+        action="store_true"
     )
     instance = MetricAdder(**vars(cparser.parse_args()))
