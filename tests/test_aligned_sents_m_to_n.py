@@ -20,15 +20,15 @@ def test_aligned_sents__seq(aligned):
 @parametrize_with_cases("aligned", cases=TestAlignedSents, glob="*m_to_n")
 def test_aligned_sents__words_cross(aligned):
     # NULL-to-NULL alignments included
-    assert aligned.src[0].cross == 0
+    assert aligned.src[0].cross is None
     assert aligned.src[1].cross == 0
     assert aligned.src[2].cross == 1
     assert aligned.src[3].cross == 1
     assert aligned.src[4].cross == 2
     assert aligned.src[5].cross == 2
-    assert aligned.src[6].cross == 0
+    assert aligned.src[6].cross is None
 
-    assert aligned.tgt[0].cross == 0
+    assert aligned.tgt[0].cross is None
     assert aligned.tgt[1].cross == 0
     assert aligned.tgt[2].cross == 1
     assert aligned.tgt[3].cross == 1
@@ -40,15 +40,15 @@ def test_aligned_sents__words_cross(aligned):
 @parametrize_with_cases("aligned", cases=TestAlignedSents, glob="*m_to_n")
 def test_aligned_sents__words_avg_cross(aligned):
     # NULL-to-NULL alignments included
-    assert aligned.src[0].avg_cross == 0.0
+    assert aligned.src[0].avg_cross is None
     assert aligned.src[1].avg_cross == 0.0
     assert aligned.src[2].avg_cross == 1 / 2
     assert aligned.src[3].avg_cross == 1.0
     assert aligned.src[4].avg_cross == 2 / 3
     assert aligned.src[5].avg_cross == 2.0
-    assert aligned.src[6].avg_cross == 0.0
+    assert aligned.src[6].avg_cross is None
 
-    assert aligned.tgt[0].avg_cross == 0.0
+    assert aligned.tgt[0].avg_cross is None
     assert aligned.tgt[1].avg_cross == 0.0
     assert aligned.tgt[2].avg_cross == 1 / 2
     assert aligned.tgt[3].avg_cross == 1.0

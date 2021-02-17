@@ -122,10 +122,10 @@ class AlignedSentences:
         """
         return [pair for pair in self.aligned_words if not any(p.is_null for p in pair)]
 
-    @property
-    def num_changes(self):
-        assert self.src.num_changes == self.tgt.num_changes
-        return self.src.num_changes
+    def num_changes(self, attr="deprel"):
+        num_changes = self.src.num_changes(attr)
+        assert num_changes == self.tgt.num_changes(attr)
+        return num_changes
 
     @staticmethod
     def attach_pairs(pairs: List[Union[SpanPair, WordPair]]):
@@ -167,7 +167,7 @@ class AlignedSentences:
                 is_mwe = False
 
             # Check whether the aligned indices of all words are a subset of the actual idxs.
-            # If it is not a subetset (and it contains more idxs than the actual idxs), then that
+            # If it is not a subset (and it contains more idxs than the actual idxs), then that
             # means that that word is aligned with a word outside of this pair.
             if not aligned_to_src.issubset(tgt_ids) or not aligned_to_tgt.issubset(src_ids):
                 has_external_align = True
@@ -179,23 +179,16 @@ class AlignedSentences:
         return is_mwe, has_external_align
 
     @staticmethod
-    def idxs_are_consecutive(pairs):
-        """
+    def has_internal_cross(pairs: List):
+        for pair1, pair2 in combinations(pairs, 2):
+            if pair2.tgt.id < pair1.tgt.id:
+                return True
 
-        :param pairs:
-        :return:
-        """
-        # NULL has already been filtered
-        prev = IdxPair(pairs[0].src.id, pairs[0].tgt.id)
-        for pair in pairs[1:]:
-            if not (
-                (pair.src.id == prev.src + 1 and pair.tgt.id == prev.tgt + 1)
-                or (pair.src.id == prev.src and pair.tgt.id == prev.tgt + 1)
-                or (pair.src.id == prev.src + 1 and pair.tgt.id == prev.tgt)
-            ):
-                return False
-            prev = IdxPair(pair.src.id, pair.tgt.id)
-        return True
+        return False
+
+    @staticmethod
+    def idxs_are_consecutive(idxs: List[int]):
+        return sorted(idxs) == list(range(min(idxs), max(idxs)+1))
 
     def add_null_aligns(self):
         # Fill in 0 idx for words that are not aligned
@@ -283,11 +276,23 @@ class AlignedSentences:
                 continue
 
             # Check if:
-            # Is the group an MWE (all src aligned with all tgt)?
-            # Is the group a regular consecutive group with no external alignments?
+            # - src and tgt idxs are consecutive and the group has no external alignments
+            # - if there are internal crosses, only allow this group if it's MWE and MWE is allowed
+            # - if no internal cross at this stage, it is a valid group
             is_mwe, has_external_align = self.check_mwe_and_external_align(pairs, src_ids, tgt_ids)
-            is_valid = self.allow_mwe and is_mwe
-            is_valid = is_valid or (self.idxs_are_consecutive(pairs) and not has_external_align)
+            idxs_consec = self.idxs_are_consecutive(src_ids) and self.idxs_are_consecutive(tgt_ids)
+
+            is_valid = False
+            if idxs_consec and not has_external_align:
+                # If there is an internal cross, this can only be a valid group if it is a MWE
+                if self.has_internal_cross(pairs):
+                    is_valid = self.allow_mwe and is_mwe
+                else:
+                    # When we got this far, it must be a valid group:
+                    # - src and tgt ids are consecutive
+                    # - there are no external alignments
+                    # - there are no internal crosses
+                    is_valid = True
 
             if is_valid:
                 found["src"].update(src_ids)
@@ -427,13 +432,14 @@ class AlignedSentences:
 
     def set_ted(self):
         # Also sets edit operation for a tree's node. This edit operation is the edit operation that is necessary
-        # to change this node in its aligned node, e.g. by matching (~ same node_repr), renaming (-> other node_repr),
+        # to change this node in its aligned node, e.g. by matching (~ same connected_repr), renaming (-> other connected_repr),
         # or deleting (-> None). As such, no nodes can have "INSERTION" because we do not have None nodes. That does
         # not mean of course that a tree cannot have insertion operations. It just means that we have no place to put
         # them because we do not have None nodes.
 
         self.ted, self.ted_ops = self.src.tree.get_distance(self.tgt.tree, config=self.ted_config)
 
+        cost = 0
         for src_match, tgt_match in self.ted_ops:
             # node repr as used by the config class to calculate TED
             src_repr = src_match.node.connected_repr if src_match else None
@@ -444,8 +450,13 @@ class AlignedSentences:
                 tgt_match.astred_op = EditOperation.MATCH
             elif src_repr is None:
                 tgt_match.astred_op = EditOperation.DELETION
+                cost += self.ted_config.costs[EditOperation.DELETION]
             elif tgt_repr is None:
                 src_match.astred_op = EditOperation.DELETION
+                cost += self.ted_config.costs[EditOperation.DELETION]
             else:
                 src_match.astred_op = EditOperation.RENAME
                 tgt_match.astred_op = EditOperation.RENAME
+                cost += self.ted_config.costs[EditOperation.RENAME]
+
+        assert self.ted == cost
