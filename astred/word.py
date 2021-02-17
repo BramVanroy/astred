@@ -46,19 +46,30 @@ class Word(Crossable):
 
     def changes(self, attr="deprel") -> Dict[int, bool]:
         attr_val = getattr(self, attr)
-        return {word.id: attr_val != getattr(word, attr) for word in self.aligned}
+        return {word.id: attr_val != getattr(word, attr) for word in self.aligned if not word.is_null}
 
     def num_changes(self, attr="deprel") -> int:
         # `changes()` is a dict of int, bool but summing works due to implicit casting
-        return sum(self.changes(attr).values())
+        changes = self.changes(attr)
+        return sum(changes.values()) if changes else None
 
     def avg_num_changes(self, attr="deprel") -> float:
-        return sum(self.changes(attr).values()) / len(self.changes(attr))
+        changes = self.changes(attr)
+        return (sum(changes.values()) / len(changes)) if changes else None
 
 
 class Null(Word):
     def __init__(self):
         super().__init__(id=0, text="[[NULL]]", is_null=True)
+
+    def changes(self, attr="deprel") -> None:
+        return None
+
+    def num_changes(self, attr="deprel") -> None:
+        return None
+
+    def avg_num_changes(self, attr="deprel") -> None:
+        return None
 
 
 WordPair = NamedTuple("WordPair", [("src", Word), ("tgt", Word)])

@@ -109,7 +109,6 @@ class NullSpan(Span):
         if not null_word.is_null:
             raise ValueError("words inside a NullSpan need to be Null words and can only be one single word.")
         super().__init__(id=0, words=[null_word], span_type=span_type, is_null=True)
-        self.seq_cross = None
 
 
 SpanPair = NamedTuple("SpanPair", [("src", Span), ("tgt", Span), ("mwe", bool)])

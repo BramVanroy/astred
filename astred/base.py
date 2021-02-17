@@ -37,18 +37,20 @@ class Crossable:
 
     @property
     def avg_cross(self) -> float:
-        return mean(self.aligned_cross.values()) if self.aligned_cross else 0
+        return mean(self.aligned_cross.values()) if self.aligned_cross else None
 
     @property
     def cross(self) -> int:
-        return sum(self.aligned_cross.values())
+        return sum(self.aligned_cross.values()) if self.aligned_cross else None
 
     def add_aligned(self, item):
         self.aligned.append(item)
-        self.aligned_directions[item.id] = (
-            Direction.NEUTRAL if item.id == self.id else Direction.FORWARD if item.id > self.id else Direction.BACKWARD
-        )
-        self.aligned_cross[item.id] = 0
+
+        if not (item.is_null or self.is_null):
+            self.aligned_directions[item.id] = (
+                Direction.NEUTRAL if item.id == self.id else Direction.FORWARD if item.id > self.id else Direction.BACKWARD
+            )
+            self.aligned_cross[item.id] = 0
 
     def get_direction_to_item(self, item):
         idx = self.aligned.index(item)
@@ -73,13 +75,13 @@ class SpanMixin(ABC):
     def __len__(self):
         return len(self.words)
 
-    @property
     def num_changes(self, attr="deprel"):
-        return sum([w.num_changes(attr=attr) for w in self])
+        changes = [w.num_changes(attr=attr) for w in self.no_null_words]
+        return sum([c for c in changes if c is not None])
 
     @property
     def no_null_words(self):
-        return [w for w in self.words if not w.is_null]
+        return [w for w in self if not w.is_null]
 
     @abstractmethod
     def attach_self_to_words(self):
