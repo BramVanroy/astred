@@ -1,8 +1,7 @@
 from typing import Generator, List
 
-import stanza
-from stanza.pipeline.core import UnsupportedProcessorError
 
+import stanza
 
 def unique_list(groups: List):
     """Filter list of lists so that:
@@ -50,19 +49,11 @@ def pair_combs(all_pairs: List, min_length: int = 2) -> Generator[List, None, No
 def load_nlp(
     lang: str, tokenize_pretokenized: bool = True, use_gpu: bool = True, logging_level: str = "INFO",
 ):
-    try:
-        return stanza.Pipeline(
-            processors="tokenize,mwt,pos,lemma,depparse",
-            lang=lang,
-            tokenize_pretokenized=tokenize_pretokenized,
-            use_gpu=use_gpu,
-            logging_level=logging_level,
-        )
-    except UnsupportedProcessorError:
-        return stanza.Pipeline(
-            processors="tokenize,pos,lemma,depparse",
-            lang=lang,
-            tokenize_pretokenized=tokenize_pretokenized,
-            use_gpu=use_gpu,
-            logging_level=logging_level,
-        )
+    return stanza.Pipeline(
+        processors="tokenize,pos,lemma,depparse",
+        lang=lang,
+        tokenize_pretokenized=tokenize_pretokenized,
+        use_gpu=use_gpu,
+        logging_level=logging_level,
+    )
+
