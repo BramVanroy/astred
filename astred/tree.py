@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, List, Tuple, Union
+from operator import attrgetter
+from typing import Any, List, Optional, Tuple, Union
 
 from apted import APTED
 from apted import Config as AptedConfig
@@ -141,6 +142,12 @@ class Tree:
         for subtree in self.subtrees(include_self=False):
             subtree.root = self
 
+    def to_latex(self, attrs: Union[List[str], str] = "text", method="forest", **kwargs):
+        s = r"\begin{forest}"
+        s += "\n"+self.to_string(attrs, parens="[]", pretty=True, **kwargs)+"\n"
+        s += r"\end{forest}"
+        return s
+
     def to_string(
         self,
         attrs: Union[List[str], str] = "text",
@@ -150,6 +157,7 @@ class Tree:
         end_on_newline: bool = False,
         node_sep: str = " ",
         indent: str = "\t",
+        wrappers: Optional[Union[List[Tuple[str]], Tuple[str]]] = None,
     ):
         if len(parens) != 2:
             raise ValueError(
@@ -160,12 +168,20 @@ class Tree:
         if isinstance(attrs, str):
             attrs = [attrs]
 
+        if wrappers is not None and len(wrappers) != len(attrs):
+            raise ValueError(
+                "'wrappers' must contain the same number of elements as 'attrs'"
+            )
+
+        wrappers = wrappers if wrappers else [None] * len(attrs)
+
         def build_str(tree, is_last_child=True):
             s = start_parens
             s += (
                 tree.node
                 if isinstance(tree.node, str)
-                else attrs_sep.join([str(getattr(tree.node, attr)) for attr in attrs])
+                else attrs_sep.join([f"{w[0]}{getattr(tree.node, a)}{w[1]}" if w else str(getattr(tree.node, a))
+                                     for a, w in zip(attrs, wrappers)])
             )
             s += " "
             n_children = len(tree.children)
@@ -211,7 +227,7 @@ class Tree:
             raise ValueError("'span_root' must be an element of 'span'")
 
         def get_children(head_idx):
-            return [word for word in span if word.head == head_idx]
+            return sorted([word for word in span if word.head == head_idx], key=attrgetter("id"))
 
         def parse(root, level=-1):
             children = get_children(int(root.id))
