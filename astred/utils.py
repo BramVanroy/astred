@@ -47,7 +47,7 @@ def pair_combs(all_pairs: List, min_length: int = 2) -> Generator[List, None, No
 
 
 def load_nlp(
-    lang: str, tokenize_pretokenized: bool = True, use_gpu: bool = True, logging_level: str = "INFO",
+    lang: str, tokenize_pretokenized: bool = True, use_gpu: bool = True, logging_level: str = "WARNING",
 ):
     return stanza.Pipeline(
         processors="tokenize,pos,lemma,depparse",
