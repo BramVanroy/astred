@@ -41,9 +41,6 @@ class Word(Crossable):
         elif not self.is_null and isinstance(self, Null):
             raise ValueError(f"{Null.__name__} words must be set to is_null=True")
 
-        # Do not include UD subtypes. Only focus on the main types.
-        self.deprel = self.deprel.split(":")[0] if self.deprel else self.deprel
-
     def changes(self, attr="deprel") -> Dict[int, bool]:
         attr_val = getattr(self, attr)
         return {word.id: attr_val != getattr(word, attr) for word in self.aligned if not word.is_null}

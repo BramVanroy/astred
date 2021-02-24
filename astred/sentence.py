@@ -79,7 +79,7 @@ class Sentence(SpanMixin):
             word.doc = self
 
     @classmethod
-    def from_stanza(cls, doc: Union[StanzaDoc, StanzaSentence]):
+    def from_stanza(cls, doc: Union[StanzaDoc, StanzaSentence], include_subtypes: bool = False):
         # doc can either be a Sentence or a Doc. In the latter case we only use the first sentence in it.
         if isinstance(doc, StanzaDoc):
             if len(doc.sentences) > 1:
@@ -96,7 +96,7 @@ class Sentence(SpanMixin):
                     text=w.text,
                     lemma=w.lemma,
                     head=int(w.head),
-                    deprel=w.deprel,
+                    deprel=w.deprel if include_subtypes else w.deprel.split(":")[0],
                     upos=w.upos,
                     xpos=w.xpos,
                     feats=w.feats if w.feats else "_",
