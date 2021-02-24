@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import operator
 from dataclasses import dataclass, field
+from functools import cached_property
 from itertools import combinations
 from typing import Dict, List, Set, Tuple, Union
 
@@ -92,6 +93,10 @@ class AlignedSentences:
             # TED
             self.set_connected()
             self.set_ted()
+
+    @cached_property
+    def giza_word_algins(self):
+        return " ".join([f'{p.src-1}-{p.tgt-1}' for p in self.word_aligns if p.src and p.tgt])
 
     @property
     def idxs_d(self) -> Dict[str, Set[int]]:
@@ -207,11 +212,33 @@ class AlignedSentences:
         self.src.aligned_sentences = self
         self.tgt.aligned_sentences = self
 
+    def is_valid_sequence(self, pairs, src_ids, tgt_ids):
+        # Check if:
+        # - src and tgt idxs are consecutive and the group has no external alignments
+        # - if there are internal crosses, only allow this group if it's MWE and MWE is allowed
+        # - if no internal cross at this stage, it is a valid group
+        is_mwe, has_external_align = self.check_mwe_and_external_align(pairs, src_ids, tgt_ids)
+        idxs_consec = self.idxs_are_consecutive(src_ids) and self.idxs_are_consecutive(tgt_ids)
+
+        is_valid = False
+        if idxs_consec and not has_external_align:
+            # If there is an internal cross, this can only be a valid group if it is a MWE
+            if self.has_internal_cross(pairs):
+                is_valid = self.allow_mwe and is_mwe
+            else:
+                # When we got this far, it must be a valid group:
+                # - src and tgt ids are consecutive
+                # - there are no external alignments
+                # - there are no internal crosses
+                is_valid = True
+
+        return is_valid, is_mwe
+
     def create_sacr_spans(self):
         def is_valid_sacr_pair(pair):
-            is_valid = pair.src.is_valid_subtree and pair.tgt.is_valid_subtree or (self.allow_mwe and spanpair.mwe)
-            is_valid = is_valid or (pair.src.is_null and pair.tgt.is_null)
-            return is_valid
+            _is_valid = pair.src.is_valid_subtree and pair.tgt.is_valid_subtree or (self.allow_mwe and spanpair.is_mwe)
+            _is_valid = _is_valid or (pair.src.is_null and pair.tgt.is_null)
+            return _is_valid
 
         src_word_groups = []
         tgt_word_groups = []
@@ -224,8 +251,9 @@ class AlignedSentences:
             s_words, t_words = map(list, spair[:-1])  # Exclude mwe
             src_word_groups.append(s_words)
             tgt_word_groups.append(t_words)
-            sacr_spans.append((min(s_ids), min(t_ids), spair.mwe))
+            sacr_spans.append((min(s_ids), min(t_ids), spair.is_mwe))
 
+        # This should probably be written more DRY-y
         for spanpair in self.aligned_seq_spans:
             src_ids = set([w.id for w in spanpair.src])
             tgt_ids = set([w.id for w in spanpair.tgt])
@@ -246,16 +274,23 @@ class AlignedSentences:
                 wpairs = spanpair_to_wordpairs(spanpair)
                 for pairs in pair_combs(wpairs, min_length=2):
                     src_ids, tgt_ids = map(set, zip(*[(p.src.id, p.tgt.id) for p in pairs]))
-                    if not src_ids.isdisjoint(found["src"]) or not tgt_ids.isdisjoint(found["tgt"]):
+                    tmp_is_singles = len(src_ids) == 1 and len(tgt_ids) == 1
+
+                    if not is_singles and (not src_ids.isdisjoint(found["src"]) or not tgt_ids.isdisjoint(found["tgt"])):
+                        continue
+
+                    # First check if this new group is a valid sequence group
+                    is_valid_seq, is_mwe = self.is_valid_sequence(pairs, src_ids, tgt_ids)
+                    if not is_valid_seq:
                         continue
 
                     src_words, tgt_words = map(list, zip(*pairs))
+                    tmp_src = Span(id=1, words=unique_list(src_words), span_type=SpanType.SACR, attach=False, is_mwe=is_mwe)
+                    tmp_tgt = Span(id=1, words=unique_list(tgt_words), span_type=SpanType.SACR, attach=False, is_mwe=is_mwe)
+                    tmp_spanpair = SpanPair(tmp_src, tmp_tgt, is_mwe)
 
-                    temp_src = Span(id=1, words=unique_list(src_words), span_type=SpanType.SACR, attach=False,)
-                    temp_tgt = Span(id=1, words=unique_list(tgt_words), span_type=SpanType.SACR, attach=False,)
-
-                    if temp_src.is_valid_subtree and temp_tgt.is_valid_subtree:
-                        add_found(SpanPair(temp_src, temp_tgt, False), src_ids, tgt_ids)
+                    if tmp_is_singles or is_valid_sacr_pair(tmp_spanpair):
+                        add_found(tmp_spanpair, src_ids, tgt_ids)
 
         self.create_spans(sacr_spans, src_word_groups, tgt_word_groups, found, span_type=SpanType.SACR)
 
@@ -275,25 +310,7 @@ class AlignedSentences:
             if not src_ids.isdisjoint(found["src"]) or not tgt_ids.isdisjoint(found["tgt"]):
                 continue
 
-            # Check if:
-            # - src and tgt idxs are consecutive and the group has no external alignments
-            # - if there are internal crosses, only allow this group if it's MWE and MWE is allowed
-            # - if no internal cross at this stage, it is a valid group
-            is_mwe, has_external_align = self.check_mwe_and_external_align(pairs, src_ids, tgt_ids)
-            idxs_consec = self.idxs_are_consecutive(src_ids) and self.idxs_are_consecutive(tgt_ids)
-
-            is_valid = False
-            if idxs_consec and not has_external_align:
-                # If there is an internal cross, this can only be a valid group if it is a MWE
-                if self.has_internal_cross(pairs):
-                    is_valid = self.allow_mwe and is_mwe
-                else:
-                    # When we got this far, it must be a valid group:
-                    # - src and tgt ids are consecutive
-                    # - there are no external alignments
-                    # - there are no internal crosses
-                    is_valid = True
-
+            is_valid, is_mwe = self.is_valid_sequence(pairs, src_ids, tgt_ids)
             if is_valid:
                 found["src"].update(src_ids)
                 found["tgt"].update(tgt_ids)
@@ -350,6 +367,11 @@ class AlignedSentences:
         # Attach spans to original sentences
         setattr(self.src, f"{span_type}_spans", src_spans)
         setattr(self.tgt, f"{span_type}_spans", tgt_spans)
+
+        # Set MWE
+        for src_idx, tgt_idx, mwe in spans:
+            src_spans[src_idx].is_mwe = mwe
+            tgt_spans[tgt_idx].is_mwe = mwe
 
         # Create span alignment pairs
         setattr(
@@ -437,7 +459,16 @@ class AlignedSentences:
         # not mean of course that a tree cannot have insertion operations. It just means that we have no place to put
         # them because we do not have None nodes.
 
+        # TED between an aligned src and tgt sentence are symmetric. However, that is not the same as
+        # summing up the astred_cost of each word in the sentence! TED for AlignedSentences counts all operations,
+        # including insertions. But a word can never have the "insertion" operation
+        # (because insertion is from None -> a Word). Hence, insertion costs will be missing when counting the differences
+        # on the word level. DO NOT DO THAT.
+
         self.ted, self.ted_ops = self.src.tree.get_distance(self.tgt.tree, config=self.ted_config)
+        ted_tgt, _ = self.tgt.tree.get_distance(self.src.tree, config=self.ted_config)
+
+        assert self.ted == ted_tgt
 
         cost = 0
         for src_match, tgt_match in self.ted_ops:
