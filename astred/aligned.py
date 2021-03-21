@@ -6,6 +6,7 @@ from functools import cached_property
 from itertools import combinations
 from typing import Dict, List, Set, Tuple, Union
 
+from .aligner import Aligner
 from .enum import EditOperation, Side, SpanType
 from .pairs import IdxPair
 from .sentence import Sentence
@@ -24,7 +25,8 @@ class AlignedSentences:
 
     src: Sentence
     tgt: Sentence
-    word_aligns: Union[List[Union[IdxPair, Tuple[int, int]]], str]
+    word_aligns: Union[List[Union[IdxPair, Tuple[int, int]]], str] = field(default=None)
+    aligner: Optional[Aligner] = field(default=None, repr=False)
     allow_mwe: bool = field(default=True)
 
     aligned_words: List[WordPair] = field(default_factory=list, init=False, repr=False)
@@ -58,22 +60,9 @@ class AlignedSentences:
         )
 
     def __post_init__(self):
-        if isinstance(self.word_aligns, str):
-            try:
-                self.word_aligns = [IdxPair(*map(int, align.split("-"))) for align in self.word_aligns.split(" ")]
-            except ValueError as exc:
-                raise ValueError("The passed alignments could not be parsed successfully. Make sure that they are"
-                                 " written in the correct format as pairs of src_idx-tgt_idx") from exc
-        elif not isinstance(self.word_aligns, IdxPair):
-            self.word_aligns = [IdxPair(*val) for val in self.word_aligns]
-
+        self.init_word_aligns()
         self.attach_self_to_sentences()
         self.attach_sentences()
-
-        # +1 because 0-index is reserved for NULL
-        self.word_aligns = [IdxPair(p.src + 1, p.tgt + 1) for p in self.word_aligns]
-        self.add_null_aligns()
-        self.word_aligns.sort(key=operator.attrgetter("src", "tgt"))
 
         self.aligned_words = [WordPair(self.src[align.src], self.tgt[align.tgt]) for align in self.word_aligns]
         self.attach_pairs(self.aligned_words)
@@ -95,7 +84,7 @@ class AlignedSentences:
             self.set_ted()
 
     @cached_property
-    def giza_word_algins(self):
+    def giza_word_aligns(self):
         return " ".join([f'{p.src-1}-{p.tgt-1}' for p in self.word_aligns if p.src and p.tgt])
 
     @property
@@ -182,6 +171,29 @@ class AlignedSentences:
                 break
 
         return is_mwe, has_external_align
+
+    def init_word_aligns(self):
+        if not self.word_aligns:
+            if not self.aligner:
+                self.aligner = Aligner()
+
+            self.word_aligns = [IdxPair(*val) for val in self.aligner.align_from_objs(self.src, self.tgt)]
+        elif isinstance(self.word_aligns, str):
+            try:
+                self.word_aligns = [IdxPair(*map(int, align.split("-"))) for align in self.word_aligns.split(" ")]
+            except ValueError as exc:
+                raise ValueError("The passed alignments could not be parsed successfully. Make sure that they are"
+                                 " written in the correct format as pairs of src_idx-tgt_idx") from exc
+        elif not isinstance(self.word_aligns, IdxPair):
+            self.word_aligns = [IdxPair(*val) for val in self.word_aligns]
+
+        # +1 because 0-index is reserved for NULL
+        self.word_aligns = [IdxPair(p.src + 1, p.tgt + 1) for p in self.word_aligns]
+        self.add_null_aligns()
+        self.word_aligns.sort(key=operator.attrgetter("src", "tgt"))
+
+        # Don't keep aligner here
+        self.aligner = None
 
     @staticmethod
     def has_internal_cross(pairs: List):
