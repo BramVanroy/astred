@@ -62,6 +62,7 @@ class AlignedSentences:
     def __post_init__(self):
         self.init_word_aligns()
         self.attach_self_to_sentences()
+        # NULL is added to the front of the sentences here
         self.attach_sentences()
 
         self.aligned_words = [WordPair(self.src[align.src], self.tgt[align.tgt]) for align in self.word_aligns]
@@ -211,10 +212,11 @@ class AlignedSentences:
         # Fill in 0 idx for words that are not aligned
         # The second list comprehension will already take into account the added idxs of the first one
         # That ensures that the NULL words are not added twice.
-        self.word_aligns += [IdxPair(idx, 0) for idx in range(len(self.src)) if idx not in self.idxs_d["src"]]
-        self.word_aligns += [IdxPair(0, idx) for idx in range(len(self.tgt)) if idx not in self.idxs_d["tgt"]]
+        self.word_aligns += [IdxPair(idx, 0) for idx in range(len(self.src)+1) if idx not in self.idxs_d["src"]]
+        self.word_aligns += [IdxPair(0, idx) for idx in range(len(self.tgt)+1) if idx not in self.idxs_d["tgt"]]
 
     def attach_sentences(self):
+        # This setter adds NULL at the front of the sentence
         self.tgt.aligned_sentence = self.src
         self.src.side = Side.SRC
         self.src.aligned_sentence = self.tgt
