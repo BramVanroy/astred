@@ -4,7 +4,7 @@ import operator
 from dataclasses import dataclass, field
 from functools import cached_property
 from itertools import combinations
-from typing import Dict, List, Set, Tuple, Union
+from typing import Dict, List, Optional, Set, Tuple, Union
 
 from .aligner import Aligner
 from .enum import EditOperation, Side, SpanType
