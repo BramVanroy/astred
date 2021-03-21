@@ -66,3 +66,9 @@ class Aligner:
             aligns.sort(key=operator.itemgetter(0, 1))
 
         return aligns
+
+    def align_from_objs(self, src_sentence, tgt_sentence):
+        src_sentence = " ".join([w.text for w in src_sentence.no_null_words])
+        tgt_sentence = " ".join([w.text for w in tgt_sentence.no_null_words])
+
+        return self.align(src_sentence, tgt_sentence)
