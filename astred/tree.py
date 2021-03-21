@@ -143,9 +143,9 @@ class Tree:
             subtree.root = self
 
     def to_latex(self, attrs: Union[List[str], str] = "text", method="forest", **kwargs):
-        s = r"\begin{forest}"
+        s = r"\begin{forest}" if method == "forest" else ""
         s += "\n"+self.to_string(attrs, parens="[]", pretty=True, **kwargs)+"\n"
-        s += r"\end{forest}"
+        s += r"\end{forest}" if method == "forest" else ""
         return s
 
     def to_string(
