@@ -106,9 +106,9 @@ class Sentence(SpanMixin):
         )
 
     @classmethod
-    def from_text(cls, text: str, nlp_or_lang: Union[StanzaPipeline, str], **kwargs):
+    def from_text(cls, text: str, nlp_or_lang: Union[StanzaPipeline, str], is_tokenized=True, **kwargs):
         if isinstance(nlp_or_lang, StanzaPipeline):
             return cls.from_stanza(nlp_or_lang(text))
         else:
-            nlp = load_nlp(nlp_or_lang, **kwargs)
+            nlp = load_nlp(nlp_or_lang, tokenize_pretokenized=is_tokenized, **kwargs)
             return cls.from_stanza(nlp(text))
