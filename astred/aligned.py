@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from functools import cached_property
 from itertools import combinations
 import operator
-from typing import Dict, List, Optional, Set, Tuple, Union
+from typing import ClassVar, Dict, List, Optional, Set, Tuple, Union
 
 from .aligner import Aligner
 from .enum import EditOperation, Side, SpanType
@@ -45,6 +45,9 @@ class AlignedSentences:
     ted_config: AstredConfig = field(default=AstredConfig(), repr=False)
     ted: int = field(default=0, init=False)
     ted_ops: List[Tuple[Tree]] = field(default_factory=list, repr=False, init=False)
+
+    # Keep a class variable for the aligner
+    _aligner: ClassVar[Aligner] = field(default=None, repr=False)
 
     def __getitem__(self, idx):
         return self.aligned_words[idx]
@@ -188,9 +191,12 @@ class AlignedSentences:
     def init_word_aligns(self):
         if not self.word_aligns:
             if not self.aligner:
-                self.aligner = Aligner()
-
-            self.word_aligns = [IdxPair(*val) for val in self.aligner.align_from_objs(self.src, self.tgt)]
+                cls = self.__class__
+                if not cls._aligner:
+                    cls._aligner = Aligner()
+                self.word_aligns = [IdxPair(*val) for val in cls._aligner.align_from_objs(self.src, self.tgt)]
+            else:
+                self.word_aligns = [IdxPair(*val) for val in self.aligner.align_from_objs(self.src, self.tgt)]
         elif isinstance(self.word_aligns, str):
             try:
                 self.word_aligns = [IdxPair(*map(int, align.split("-"))) for align in self.word_aligns.split(" ")]
@@ -204,9 +210,6 @@ class AlignedSentences:
         self.word_aligns = [IdxPair(p.src + 1, p.tgt + 1) for p in self.word_aligns]
         self.add_null_aligns()
         self.word_aligns.sort(key=operator.attrgetter("src", "tgt"))
-
-        # Don't keep aligner here
-        self.aligner = None
 
     @staticmethod
     def has_internal_cross(pairs: List):
