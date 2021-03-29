@@ -1,7 +1,7 @@
 Syntactic equivalence metrics
 =============================
 
-Examples, documentation, and tests to be added. You can already use :code:`examples/add_features_tprdb.py`, though. 
+Documentation, and tests to be added. You can already use :code:`examples/add_features_tprdb.py`, though. 
 Use :code:`python examples/add_features_tprdb.py -h` to get started.
 
 Example notebooks
