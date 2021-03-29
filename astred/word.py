@@ -43,7 +43,8 @@ class Word(Crossable):
 
     def changes(self, attr="deprel") -> Dict[int, bool]:
         attr_val = getattr(self, attr)
-        return {word.id: attr_val != getattr(word, attr) for word in self.aligned if not word.is_null}
+        return {word.id: attr_val != getattr(word, attr) for word in self.aligned if
+                not word.is_null} if attr_val is not None else None
 
     def num_changes(self, attr="deprel") -> int:
         # `changes()` is a dict of int, bool but summing works due to implicit casting
