@@ -4,6 +4,21 @@ Syntactic equivalence metrics
 Examples, documentation, and tests to be added. You can already use :code:`examples/add_features_tprdb.py`, though. 
 Use :code:`python examples/add_features_tprdb.py -h` to get started.
 
+Example notebooks
+-----------------
+
+A couple example notebooks exist, each with a different grade of automation for the initialisation of the aligned object. 
+Once an aligned object has been created, the functionality is identical.
+
+- `High automation`_: *automate all the things*. Tokenisation, parsing, and word alignment is done automatically.
+- `Normal automation`_: the typical scenario where you have tokenised and aligned text that is not parsed yet
+- `No automation`_: full-manual mode, where you provide all the required information, including dependency labels and heads
+
+.. _High automation: examples/full-auto.ipynb
+.. _Normal automation: examples/automatic-parsing.ipynb
+.. _No automation: examples/full-manual.ipynb
+
+
 Installation
 ------------
 
@@ -41,7 +56,7 @@ If you are using pip, you can run the following command:
 Awesome Align requires PyTorch, like :code:`stanza` above.
 
 If it is installed, you can initialize :code:`AlignedSentences` without providing word alignments. Those will be added
-automatically behind the scenes.
+automatically behind the scenes. See `this example notebook`_ for more.
 
 .. code-block:: bash
 
@@ -56,6 +71,7 @@ I highly suggest reading `the paper`_ of Awesome Align to see whether it is a go
 
 .. _Awesome Align: https://github.com/neulab/awesome-align
 .. _this fork: https://github.com/BramVanroy/awesome-align/tree/astred_compat
+.. _this example notebook: examples/full-auto.ipynb
 .. _the paper: https://arxiv.org/abs/2101.08231
 
 License
