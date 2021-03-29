@@ -67,6 +67,18 @@ class Sentence(SpanMixin):
         self.attach_self_to_words()
 
     @property
+    def word_cross(self) -> int:
+        return self.aligned_sentences.word_cross if self.aligned_sentences else None
+
+    @property
+    def seq_cross(self) -> int:
+        return self.aligned_sentences.seq_cross if self.aligned_sentences else None
+
+    @property
+    def sacr_cross(self) -> int:
+        return self.aligned_sentences.sacr_cross if self.aligned_sentences else None
+
+    @property
     def no_null_seq_spans(self):
         return [s for s in self.seq_spans if not s.is_null]
 
