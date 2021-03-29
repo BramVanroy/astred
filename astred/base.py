@@ -77,7 +77,11 @@ class SpanMixin(ABC):
 
     def num_changes(self, attr="deprel"):
         changes = [w.num_changes(attr=attr) for w in self.no_null_words]
-        return sum([c for c in changes if c is not None])
+
+        if all([c is None for c in changes]):
+            return None
+        else:
+            return sum([c for c in changes if c is not None])
 
     @property
     def no_null_words(self):
