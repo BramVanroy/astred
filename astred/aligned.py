@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-import operator
+from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import cached_property
 from itertools import combinations
+import operator
 from typing import Dict, List, Optional, Set, Tuple, Union
 
 from .aligner import Aligner
@@ -28,6 +29,7 @@ class AlignedSentences:
     word_aligns: Union[List[Union[IdxPair, Tuple[int, int]]], str] = field(default=None)
     aligner: Optional[Aligner] = field(default=None, repr=False)
     allow_mwe: bool = field(default=True)
+    make_copies: bool = field(default=False)
 
     aligned_words: List[WordPair] = field(default_factory=list, init=False, repr=False)
     word_cross: int = field(default=0, init=False)
@@ -60,6 +62,16 @@ class AlignedSentences:
         )
 
     def __post_init__(self):
+        if any(w.is_null for w in self.src.words+self.tgt.words):
+            raise ValueError("Your sentence(s) cannot contain NULL before passing it to an AlignedSentences"
+                             " constructor because that means it has already been aligned and metrics have already"
+                             " been calculate for all words involved.")
+
+        # Copy input so that the given Sentence is not modified in place
+        if self.make_copies:
+            self.src = deepcopy(self.src)
+            self.tgt = deepcopy(self.tgt)
+
         self.init_word_aligns()
         self.attach_self_to_sentences()
         # NULL is added to the front of the sentences here
