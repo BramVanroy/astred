@@ -141,7 +141,7 @@ class Sentence(SpanMixin):
                     id=w.i + 1,
                     text=w.text,
                     lemma=w.lemma_,
-                    head=w.head.i + 1,
+                    head=0 if w.head.i == w.i else w.head.i + 1,
                     deprel=w.dep_ if include_subtypes else w.dep_.split(":")[0],
                     upos=w.pos_,
                     xpos=w.tag_,
