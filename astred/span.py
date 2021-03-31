@@ -82,9 +82,9 @@ class Span(Crossable, SpanMixin):
 
     @cached_property
     def is_valid_subtree(self) -> Optional[bool]:
-        """ valid subtrees need to all be connected. That means that
-            for all nodes, their parents' idx (head) must be present except for the topmost level
-            and that the topmost level can only contain one node (as the main ancestor) """
+        """valid subtrees need to all be connected. That means that
+        for all nodes, their parents' idx (head) must be present except for the topmost level
+        and that the topmost level can only contain one node (as the main ancestor)"""
         # If any of these words do not have a tree set,
         # we won't even try to set a tree for this span nor check its validity
         # Also sets sets to None for NullSpans

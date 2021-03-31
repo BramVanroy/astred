@@ -15,6 +15,7 @@ from .tree import Tree
 from .utils import load_nlp
 from .word import Null, Word
 
+
 logger = logging.getLogger("astred")
 
 

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+import operator
 from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import cached_property
 from itertools import combinations
-import operator
 from typing import ClassVar, Dict, List, Optional, Set, Tuple, Union
 
 from .aligner import Aligner
@@ -65,10 +65,12 @@ class AlignedSentences:
         )
 
     def __post_init__(self):
-        if any(w.is_null for w in self.src.words+self.tgt.words):
-            raise ValueError("Your sentence(s) cannot contain NULL before passing it to an AlignedSentences"
-                             " constructor because that means it has already been aligned and metrics have already"
-                             " been calculate for all words involved.")
+        if any(w.is_null for w in self.src.words + self.tgt.words):
+            raise ValueError(
+                "Your sentence(s) cannot contain NULL before passing it to an AlignedSentences"
+                " constructor because that means it has already been aligned and metrics have already"
+                " been calculate for all words involved."
+            )
 
         # Copy input so that the given Sentence is not modified in place
         if self.make_copies:
@@ -101,7 +103,7 @@ class AlignedSentences:
 
     @cached_property
     def giza_word_aligns(self):
-        return " ".join([f'{p.src-1}-{p.tgt-1}' for p in self.word_aligns if p.src and p.tgt])
+        return " ".join([f"{p.src-1}-{p.tgt-1}" for p in self.word_aligns if p.src and p.tgt])
 
     @property
     def idxs_d(self) -> Dict[str, Set[int]]:
@@ -201,8 +203,10 @@ class AlignedSentences:
             try:
                 self.word_aligns = [IdxPair(*map(int, align.split("-"))) for align in self.word_aligns.split(" ")]
             except ValueError as exc:
-                raise ValueError("The passed alignments could not be parsed successfully. Make sure that they are"
-                                 " written in the correct format as pairs of src_idx-tgt_idx") from exc
+                raise ValueError(
+                    "The passed alignments could not be parsed successfully. Make sure that they are"
+                    " written in the correct format as pairs of src_idx-tgt_idx"
+                ) from exc
         elif not isinstance(self.word_aligns, IdxPair):
             self.word_aligns = [IdxPair(*val) for val in self.word_aligns]
 
@@ -221,14 +225,14 @@ class AlignedSentences:
 
     @staticmethod
     def idxs_are_consecutive(idxs: List[int]):
-        return sorted(idxs) == list(range(min(idxs), max(idxs)+1))
+        return sorted(idxs) == list(range(min(idxs), max(idxs) + 1))
 
     def add_null_aligns(self):
         # Fill in 0 idx for words that are not aligned
         # The second list comprehension will already take into account the added idxs of the first one
         # That ensures that the NULL words are not added twice.
-        self.word_aligns += [IdxPair(idx, 0) for idx in range(len(self.src)+1) if idx not in self.idxs_d["src"]]
-        self.word_aligns += [IdxPair(0, idx) for idx in range(len(self.tgt)+1) if idx not in self.idxs_d["tgt"]]
+        self.word_aligns += [IdxPair(idx, 0) for idx in range(len(self.src) + 1) if idx not in self.idxs_d["src"]]
+        self.word_aligns += [IdxPair(0, idx) for idx in range(len(self.tgt) + 1) if idx not in self.idxs_d["tgt"]]
 
     def attach_sentences(self):
         # This setter adds NULL at the front of the sentence
@@ -305,7 +309,9 @@ class AlignedSentences:
                     src_ids, tgt_ids = map(set, zip(*[(p.src.id, p.tgt.id) for p in pairs]))
                     tmp_is_singles = len(src_ids) == 1 and len(tgt_ids) == 1
 
-                    if not is_singles and (not src_ids.isdisjoint(found["src"]) or not tgt_ids.isdisjoint(found["tgt"])):
+                    if not is_singles and (
+                        not src_ids.isdisjoint(found["src"]) or not tgt_ids.isdisjoint(found["tgt"])
+                    ):
                         continue
 
                     # First check if this new group is a valid sequence group
@@ -314,8 +320,12 @@ class AlignedSentences:
                         continue
 
                     src_words, tgt_words = map(list, zip(*pairs))
-                    tmp_src = Span(id=1, words=unique_list(src_words), span_type=SpanType.SACR, attach=False, is_mwe=is_mwe)
-                    tmp_tgt = Span(id=1, words=unique_list(tgt_words), span_type=SpanType.SACR, attach=False, is_mwe=is_mwe)
+                    tmp_src = Span(
+                        id=1, words=unique_list(src_words), span_type=SpanType.SACR, attach=False, is_mwe=is_mwe
+                    )
+                    tmp_tgt = Span(
+                        id=1, words=unique_list(tgt_words), span_type=SpanType.SACR, attach=False, is_mwe=is_mwe
+                    )
                     tmp_spanpair = SpanPair(tmp_src, tmp_tgt, is_mwe)
 
                     if tmp_is_singles or is_valid_sacr_pair(tmp_spanpair):
@@ -409,7 +419,9 @@ class AlignedSentences:
             [SpanPair(src_spans[src_idx], tgt_spans[tgt_idx], mwe) for src_idx, tgt_idx, mwe in spans],
         )
         setattr(
-            self, f"{span_type}_aligns", [IdxPair(src_idx, tgt_idx) for src_idx, tgt_idx, _ in spans],
+            self,
+            f"{span_type}_aligns",
+            [IdxPair(src_idx, tgt_idx) for src_idx, tgt_idx, _ in spans],
         )
 
     def set_connected(self, attr="deprel"):
@@ -435,7 +447,8 @@ class AlignedSentences:
             src_words = [_w for _w in group if _w.side == Side.SRC]
             return "|".join(
                 [
-                    f"{src.id}.{getattr(src, attr)}:{','.join([str(tgt.id) + '.' + getattr(tgt, attr) for tgt in src.aligned if not tgt.is_null])}"
+                    f"{src.id}.{getattr(src, attr)}:"
+                    + ",".join([f"{tgt.id}.{getattr(tgt, attr)}" for tgt in src.aligned if not tgt.is_null])
                     for src in src_words
                     if not src.is_null
                 ]

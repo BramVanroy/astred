@@ -1,12 +1,12 @@
 from typing import Generator, List
 
-
 import stanza
+
 
 def unique_list(groups: List):
     """Filter list of lists so that:
-       - the sublists only contain unique items (no duplicates);
-       - the sublists themselves are unique (two identical sublists cannot exists)"""
+    - the sublists only contain unique items (no duplicates);
+    - the sublists themselves are unique (two identical sublists cannot exists)"""
 
     def unique(main_list: List):
         uniq = []
@@ -29,8 +29,8 @@ def unique_list(groups: List):
 
 
 def rebase_to_idxs(idxs: List[int]):
-    """ Convert values to indices. This ensure that there are no strange gaps
-        between sequence alignments (e.g. when an index is not word-aligned) """
+    """Convert values to indices. This ensure that there are no strange gaps
+    between sequence alignments (e.g. when an index is not word-aligned)"""
     l_sort = sorted(list(set(idxs)))
 
     return [l_sort.index(x) for x in idxs]
@@ -47,7 +47,10 @@ def pair_combs(all_pairs: List, min_length: int = 2) -> Generator[List, None, No
 
 
 def load_nlp(
-    lang: str, tokenize_pretokenized: bool = True, use_gpu: bool = True, logging_level: str = "WARNING",
+    lang: str,
+    tokenize_pretokenized: bool = True,
+    use_gpu: bool = True,
+    logging_level: str = "WARNING",
 ):
     return stanza.Pipeline(
         processors="tokenize,pos,lemma,depparse",
@@ -56,4 +59,3 @@ def load_nlp(
         use_gpu=use_gpu,
         logging_level=logging_level,
     )
-

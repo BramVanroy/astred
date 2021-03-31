@@ -48,7 +48,11 @@ class Crossable:
 
         if not (item.is_null or self.is_null):
             self.aligned_directions[item.id] = (
-                Direction.NEUTRAL if item.id == self.id else Direction.FORWARD if item.id > self.id else Direction.BACKWARD
+                Direction.NEUTRAL
+                if item.id == self.id
+                else Direction.FORWARD
+                if item.id > self.id
+                else Direction.BACKWARD
             )
             self.aligned_cross[item.id] = 0
 

@@ -144,7 +144,7 @@ class Tree:
 
     def to_latex(self, attrs: Union[List[str], str] = "text", method="forest", **kwargs):
         s = r"\begin{forest}" if method == "forest" else ""
-        s += "\n"+self.to_string(attrs, parens="[]", pretty=True, **kwargs)+"\n"
+        s += "\n" + self.to_string(attrs, parens="[]", pretty=True, **kwargs) + "\n"
         s += r"\end{forest}" if method == "forest" else ""
         return s
 
@@ -169,9 +169,7 @@ class Tree:
             attrs = [attrs]
 
         if wrappers is not None and len(wrappers) != len(attrs):
-            raise ValueError(
-                "'wrappers' must contain the same number of elements as 'attrs'"
-            )
+            raise ValueError("'wrappers' must contain the same number of elements as 'attrs'")
 
         wrappers = wrappers if wrappers else [None] * len(attrs)
 
@@ -180,8 +178,12 @@ class Tree:
             s += (
                 tree.node
                 if isinstance(tree.node, str)
-                else attrs_sep.join([f"{w[0]}{getattr(tree.node, a)}{w[1]}" if w else str(getattr(tree.node, a))
-                                     for a, w in zip(attrs, wrappers)])
+                else attrs_sep.join(
+                    [
+                        f"{w[0]}{getattr(tree.node, a)}{w[1]}" if w else str(getattr(tree.node, a))
+                        for a, w in zip(attrs, wrappers)
+                    ]
+                )
             )
             s += " "
             n_children = len(tree.children)
