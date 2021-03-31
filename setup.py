@@ -6,11 +6,11 @@ extras = {"stanza": ["stanza"],
 
 extras["parsers"] = extras["stanza"] + extras["spacy"]
 extras["all"] = extras["stanza"] + extras["spacy"]
-extras["dev"] = extras["all"] + ["isort>=5.5.4", "black", "flake8", "pytest", "pytest_cases"],
+extras["dev"] = extras["all"] + ["isort>=5.5.4", "black", "flake8", "pytest", "pytest_cases", "pygments"],
 
 setup(
     name="astred",
-    version="0.9.0",
+    version="0.9.1",
     description="A collection of syntactic metrics to calculate (dis)similarities between source and target sentences.",
     long_description=Path("README.rst").read_text(encoding="utf-8"),
     long_description_content_type="text/x-rst",
