@@ -4,9 +4,13 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any, List, Optional, Union
 
-from stanza.models.common.doc import Document as StanzaDoc
-from stanza.models.common.doc import Sentence as StanzaSentence
-from stanza.pipeline.core import Pipeline as StanzaPipeline
+from .utils import STANZA_AVAILABLE, SPACY_AVAILABLE
+
+if STANZA_AVAILABLE:
+    from stanza.models.common.doc import Document as StanzaDoc
+    from stanza.models.common.doc import Sentence as StanzaSentence
+    from stanza.pipeline.core import Pipeline as StanzaPipeline
+
 
 from .base import SpanMixin
 from .enum import Side

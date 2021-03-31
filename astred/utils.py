@@ -1,6 +1,17 @@
 from typing import Generator, List
 
-import stanza
+try:
+    import stanza
+    STANZA_AVAILABLE = True
+except ImportError:
+    STANZA_AVAILABLE = False
+
+
+try:
+    import spacy
+    SPACY_AVAILABLE = True
+except ImportError:
+    SPACY_AVAILABLE = False
 
 
 def unique_list(groups: List):
