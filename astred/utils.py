@@ -1,6 +1,7 @@
 from typing import Generator, List, Union
 
 try:
+    import stanza
     from stanza import Pipeline as StanzaPipeline
 
     STANZA_AVAILABLE = True
@@ -108,6 +109,7 @@ def load_parser(model_or_lang, parser=None, *, is_tokenized=True, use_gpu=True, 
                 nlp.tokenizer = SpacyPretokenizedTokenizer(nlp.vocab)
                 nlp.add_pipe("prevent_sbd", name="prevent-sbd", before="parser")
         elif parser == "stanza":
+            stanza.download(model_or_lang)
             nlp = StanzaPipeline(
                 processors="tokenize,pos,lemma,depparse",
                 lang=model_or_lang,
