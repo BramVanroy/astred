@@ -2,7 +2,11 @@ import itertools
 import operator
 from dataclasses import dataclass, field
 
-import torch
+try:
+    import torch
+    torch_available = True
+except ImportError:
+    torch_available = False
 
 
 try:
@@ -23,8 +27,8 @@ class Aligner:
     softmax_threshold: float = field(default=0.001)
 
     def __post_init__(self):
-        if not awesome_align_available:
-            raise ImportError("To use the automatic aligner, awesone_align must be installed.")
+        if not awesome_align_available or not torch_available:
+            raise ImportError("To use the automatic aligner, awesone_align and torch must be installed.")
 
         self.device = torch.device("cuda" if torch.cuda.is_available() and not self.no_cuda else "cpu")
         self.tokenizer = BertTokenizer.from_pretrained(self.model_name_or_path)
