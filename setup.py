@@ -2,11 +2,10 @@ from pathlib import Path
 from setuptools import setup
 
 extras = {"stanza": ["stanza"],
-          "spacy": ["spacy>=3.0"],
-          "align": ["awesome_align @ git+https://github.com/BramVanroy/awesome-align.git@astred_compat"]}
+          "spacy": ["spacy>=3.0"]}
 
 extras["parsers"] = extras["stanza"] + extras["spacy"]
-extras["all"] = extras["stanza"] + extras["spacy"] + extras["align"]
+extras["all"] = extras["stanza"] + extras["spacy"]
 extras["dev"] = extras["all"] + ["isort>=5.5.4", "black", "flake8", "pytest", "pytest_cases"],
 
 setup(
