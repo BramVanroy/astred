@@ -104,10 +104,14 @@ def load_parser(model_or_lang, parser=None, *, is_tokenized=True, use_gpu=True, 
             else:
                 spacy.require_cpu()
 
-            nlp = spacy.load(model_or_lang, exclude=["tok2vec", "ner", "textcat", "senter", "sentencizer"], **kwargs)
             if is_tokenized:
+                # Disable sentence segmentation through senter or sentencizer component as well
+                nlp = spacy.load(model_or_lang, exclude=["senter", "sentencizer"], **kwargs)
                 nlp.tokenizer = SpacyPretokenizedTokenizer(nlp.vocab)
+                # It is still possible that the dependency parser leads to segmentation, disable
                 nlp.add_pipe("prevent_sbd", name="prevent-sbd", before="parser")
+            else:
+                nlp = spacy.load(model_or_lang, **kwargs)
         elif parser == "stanza":
             stanza.download(model_or_lang)
             nlp = StanzaPipeline(
