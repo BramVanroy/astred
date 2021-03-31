@@ -1,12 +1,12 @@
 from __future__ import annotations  # so that we can use the class in typing
 
 from dataclasses import dataclass, field
-from functools import cached_property
 from typing import Dict, List, NamedTuple, Optional
 
 from .base import Crossable, SpanMixin
 from .enum import SpanType
 from .tree import Tree
+from .utils import cached_property
 from .word import Null, Word
 
 

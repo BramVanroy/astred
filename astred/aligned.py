@@ -3,7 +3,6 @@ from __future__ import annotations
 import operator
 from copy import deepcopy
 from dataclasses import dataclass, field
-from functools import cached_property
 from itertools import combinations
 from typing import ClassVar, Dict, List, Optional, Set, Tuple, Union
 
@@ -13,7 +12,7 @@ from .pairs import IdxPair
 from .sentence import Sentence
 from .span import NullSpan, Span, SpanPair
 from .tree import AstredConfig, Tree
-from .utils import pair_combs, rebase_to_idxs, unique_list
+from .utils import pair_combs, rebase_to_idxs, unique_list, cached_property
 from .word import WordPair, spanpair_to_wordpairs
 
 
