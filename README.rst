@@ -1,8 +1,8 @@
 Syntactic equivalence metrics
 =============================
 
-Documentation, and tests to be added. You can already use :code:`examples/add_features_tprdb.py`, though. 
-Use :code:`python examples/add_features_tprdb.py -h` to get started.
+Documentation, and more tests to be added.
+
 
 Example notebooks
 -----------------
@@ -22,24 +22,29 @@ Once an aligned object has been created, the functionality is identical.
 Installation
 ------------
 
-Requires Python 3.7 or higher.
+Requires Python 3.7 or higher. To keep the overhead low, a default parser is NOT installed. Currently both `spaCy`_ and
+`stanza`_ are supported and you can choose which one to use. Stanza is recommended for bilingual research (because it
+is ensured that all of its models use Universal Dependencies), but spaCy can be used as well. The latter is especially
+used for monolingual comparisons, or if you are not interested in the linguistic comparisons and only require word
+reordering metrics.
 
-This library relies on `stanza`_ to parse text into dependencies, which in turn depends on PyTorch. make sure that you
-have a valid `PyTorch installation`_ prior to installing this library.
-
-When PyTorch is installed, and you have cloned this library, you can run :code:`pip install .` which will autmatically install
-the required dependencies.
+A pre-release is available on PyPi. You can install it with pip as follows.
 
 .. code-block:: bash
 
-    git clone https://github.com/BramVanroy/astred.git
-    cd astred
-    pip install .
+    # Install with stanza (recommended)
+    pip install astred[stanza]
+    # ... or install with spacy
+    pip install astred[spacy]
+    # ... or install with both and decide later
+    pip install astred[parsers]
 
+If you want to use spaCy, you have to make sure that you `install`_ the required models manually, which cannot be
+automated.
 
+.. _spaCy: https://spacy.io/
 .. _stanza: https://github.com/stanfordnlp/stanza
-.. _PyTorch installation: https://pytorch.org/get-started/locally/
-
+.. _install: https://spacy.io/usage/models
 
 Automatic Word Alignment
 ------------------------
@@ -77,3 +82,9 @@ I highly suggest reading `the paper`_ of Awesome Align to see whether it is a go
 License
 -------
 Licensed under Apache License Version 2.0. See the LICENSE file attached to this repository.
+
+Citation
+--------
+Please cite our `papers`_ if you use this library.
+
+.. _papers: CITATION
