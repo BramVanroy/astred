@@ -154,9 +154,9 @@ class Sentence(SpanMixin):
     @classmethod
     def from_text(cls, text: str, nlp_or_model: Union[StanzaPipeline, SpacyLanguage, str], parser: str = None,
                   is_tokenized: bool = True, **kwargs):
-        if isinstance(nlp_or_model, StanzaPipeline):
+        if STANZA_AVAILABLE and isinstance(nlp_or_model, StanzaPipeline):
             return cls.from_stanza(nlp_or_model(text))
-        elif isinstance(nlp_or_model, SpacyLanguage):
+        elif SPACY_AVAILABLE and isinstance(nlp_or_model, SpacyLanguage):
             return cls.from_spacy(nlp_or_model(text))
         else:
             nlp = load_parser(nlp_or_model, parser, is_tokenized=is_tokenized, **kwargs)
