@@ -2,7 +2,7 @@ from pathlib import Path
 from setuptools import setup
 
 extras = {"stanza": ["stanza"],
-          "spacy": ["spacy"],
+          "spacy": ["spacy>=3.0"],
           "align": ["awesome_align @ git+https://github.com/BramVanroy/awesome-align.git@astred_compat"]}
 
 extras["parsers"] = extras["stanza"] + extras["spacy"]

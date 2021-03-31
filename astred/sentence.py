@@ -4,21 +4,23 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any, List, Optional, Union
 
-from .utils import STANZA_AVAILABLE, SPACY_AVAILABLE
+from .utils import SPACY_AVAILABLE, STANZA_AVAILABLE, load_parser
 
 if STANZA_AVAILABLE:
     from stanza.models.common.doc import Document as StanzaDoc
     from stanza.models.common.doc import Sentence as StanzaSentence
     from stanza.pipeline.core import Pipeline as StanzaPipeline
 
+if SPACY_AVAILABLE:
+    from spacy.language import Language as SpacyLanguage
+    from spacy.tokens.doc import Doc as SpacyDoc
+    from spacy.tokens.span import Span as SpacySpan
 
 from .base import SpanMixin
 from .enum import Side
 from .span import Span
 from .tree import Tree
-from .utils import load_nlp
 from .word import Null, Word
-
 
 logger = logging.getLogger("astred")
 
@@ -123,9 +125,39 @@ class Sentence(SpanMixin):
         )
 
     @classmethod
-    def from_text(cls, text: str, nlp_or_lang: Union[StanzaPipeline, str], is_tokenized=True, **kwargs):
-        if isinstance(nlp_or_lang, StanzaPipeline):
-            return cls.from_stanza(nlp_or_lang(text))
+    def from_spacy(cls, doc: Union[SpacyDoc, SpacySpan], include_subtypes: bool = False):
+        if isinstance(doc, SpacyDoc):
+            sents = list(doc.sents)
+            if len(sents) > 1:
+                logger.warning("More than one sentence found in this spaCy parse. Will only use the first once.")
+            sentence = sents[0]
         else:
-            nlp = load_nlp(nlp_or_lang, tokenize_pretokenized=is_tokenized, **kwargs)
-            return cls.from_stanza(nlp(text))
+            sentence = doc
+
+        # Stanza starts counting at 1 (0 reserved for a ROOT node). We also start at 1 so that 0 can be used for Null
+        return cls(
+            [
+                Word(
+                    id=w.i + 1,
+                    text=w.text,
+                    lemma=w.lemma_,
+                    head=w.head.i + 1,
+                    deprel=w.dep_ if include_subtypes else w.dep_.split(":")[0],
+                    upos=w.pos_,
+                    xpos=w.tag_,
+                    feats=w.morph if w.morph else "_",
+                )
+                for w in sentence
+            ]
+        )
+
+    @classmethod
+    def from_text(cls, text: str, nlp_or_model: Union[StanzaPipeline, SpacyLanguage, str], parser: str = None,
+                  is_tokenized: bool = True, **kwargs):
+        if isinstance(nlp_or_model, StanzaPipeline):
+            return cls.from_stanza(nlp_or_model(text))
+        elif isinstance(nlp_or_model, SpacyLanguage):
+            return cls.from_spacy(nlp_or_model(text))
+        else:
+            nlp = load_parser(nlp_or_model, parser, is_tokenized=is_tokenized, **kwargs)
+            return cls.from_text(text, nlp)

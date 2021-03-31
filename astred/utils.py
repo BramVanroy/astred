@@ -1,17 +1,55 @@
-from typing import Generator, List
+from typing import Generator, List, Union
 
 try:
-    import stanza
-    STANZA_AVAILABLE = True
-except ImportError:
-    STANZA_AVAILABLE = False
+    from stanza import Pipeline as StanzaPipeline
 
+    STANZA_AVAILABLE = True
+except (ImportError, AttributeError):
+    STANZA_AVAILABLE = False
 
 try:
     import spacy
+    from spacy.language import Language as SpacyLanguage
+    from spacy.tokens import Doc as SpacyDoc
+    from spacy.vocab import Vocab as SpacyVocab
+
     SPACY_AVAILABLE = True
 except ImportError:
     SPACY_AVAILABLE = False
+
+if SPACY_AVAILABLE:
+    class SpacyPretokenizedTokenizer:
+        """Custom tokenizer to be used in spaCy when the text is already pretokenized."""
+
+        def __init__(self, vocab: SpacyVocab):
+            """Initialize tokenizer with a given vocab
+            :param vocab: an existing vocabulary (see https://spacy.io/api/vocab)
+            """
+            self.vocab = vocab
+
+        def __call__(self, inp: Union[List[str], str]) -> SpacyDoc:
+            """Call the tokenizer on input `inp`.
+            :param inp: either a string to be split on whitespace, or a list of tokens
+            :return: the created Doc object
+            """
+            if isinstance(inp, str):
+                words = inp.split()
+                spaces = [True] * (len(words) - 1) + ([True] if inp[-1].isspace() else [False])
+                return SpacyDoc(self.vocab, words=words, spaces=spaces)
+            elif isinstance(inp, list):
+                return SpacyDoc(self.vocab, words=inp)
+            else:
+                raise ValueError(
+                    "Unexpected input format. Expected string to be split on whitespace, or list of tokens."
+                )
+
+
+    @SpacyLanguage.component("prevent_sbd")
+    def spacy_prevent_sbd(doc: SpacyDoc):
+        """Disables spaCy's sentence boundary detection."""
+        for token in doc:
+            token.is_sent_start = False
+        return doc
 
 
 def unique_list(groups: List):
@@ -51,22 +89,43 @@ def pair_combs(all_pairs: List, min_length: int = 2) -> Generator[List, None, No
     n_pairs = len(all_pairs)
     for i in range(n_pairs, min_length - 1, -1):
         for j in range(n_pairs - i + 1):
-            pairs = all_pairs[j : j + i]
+            pairs = all_pairs[j: j + i]
             if any(item.is_null for pair in pairs for item in pair):
                 continue
             yield pairs
 
 
-def load_nlp(
-    lang: str,
-    tokenize_pretokenized: bool = True,
-    use_gpu: bool = True,
-    logging_level: str = "WARNING",
-):
-    return stanza.Pipeline(
-        processors="tokenize,pos,lemma,depparse",
-        lang=lang,
-        tokenize_pretokenized=tokenize_pretokenized,
-        use_gpu=use_gpu,
-        logging_level=logging_level,
-    )
+def load_parser(model_or_lang, parser=None, *, is_tokenized=True, use_gpu=True, **kwargs):
+    try:
+        if parser == "spacy":
+            if use_gpu:
+                spacy.prefer_gpu()  # Only use GPU if it is available
+            else:
+                spacy.require_cpu()
+
+            nlp = spacy.load(model_or_lang, exclude=["tok2vec", "ner", "textcat", "senter", "sentencizer"], **kwargs)
+            if is_tokenized:
+                nlp.tokenizer = SpacyPretokenizedTokenizer(nlp.vocab)
+                nlp.add_pipe("prevent_sbd", name="prevent-sbd", before="parser")
+        elif parser == "stanza":
+            nlp = StanzaPipeline(
+                processors="tokenize,pos,lemma,depparse",
+                lang=model_or_lang,
+                tokenize_pretokenized=is_tokenized,
+                use_gpu=use_gpu,
+                logging_level="WARNING",
+                **kwargs
+            )
+        else:
+            if STANZA_AVAILABLE:
+                return load_parser(model_or_lang, parser="stanza", is_tokenized=is_tokenized, use_gpu=use_gpu, **kwargs)
+            elif SPACY_AVAILABLE:
+                return load_parser(model_or_lang, parser="spacy", is_tokenized=is_tokenized, use_gpu=use_gpu, **kwargs)
+            else:
+                raise ImportError
+    except (NameError, ImportError):
+        err = "Stanza or spaCy not installed so cannot instantiate a parser"
+        err += f" ({parser} requested)" if parser else ""
+        raise ImportError(err)
+
+    return nlp
