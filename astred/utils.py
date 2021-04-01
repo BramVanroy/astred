@@ -1,5 +1,6 @@
 from typing import Generator, List, Optional, Union
 
+
 try:
     import stanza
     from stanza import Pipeline as StanzaPipeline
@@ -19,6 +20,7 @@ except ImportError:
     SPACY_AVAILABLE = False
 
 if SPACY_AVAILABLE:
+
     class SpacyPretokenizedTokenizer:
         """Custom tokenizer to be used in spaCy when the text is already pretokenized."""
 
@@ -43,7 +45,6 @@ if SPACY_AVAILABLE:
                 raise ValueError(
                     "Unexpected input format. Expected string to be split on whitespace, or list of tokens."
                 )
-
 
     @SpacyLanguage.component("prevent_sbd")
     def spacy_prevent_sbd(doc: SpacyDoc):
@@ -90,13 +91,21 @@ def pair_combs(all_pairs: List, min_length: int = 2) -> Generator[List, None, No
     n_pairs = len(all_pairs)
     for i in range(n_pairs, min_length - 1, -1):
         for j in range(n_pairs - i + 1):
-            pairs = all_pairs[j: j + i]
+            pairs = all_pairs[j : j + i]
             if any(item.is_null for pair in pairs for item in pair):
                 continue
             yield pairs
 
 
-def load_parser(model_or_lang: str, parser:Optional[str]=None, *, auto_download:bool=True, is_tokenized:bool=True, use_gpu:bool=True, **kwargs):
+def load_parser(
+    model_or_lang: str,
+    parser: Optional[str] = None,
+    *,
+    auto_download: bool = True,
+    is_tokenized: bool = True,
+    use_gpu: bool = True,
+    **kwargs,
+):
     try:
         if parser == "spacy":
             if use_gpu:
@@ -121,11 +130,13 @@ def load_parser(model_or_lang: str, parser:Optional[str]=None, *, auto_download:
                 tokenize_pretokenized=is_tokenized,
                 use_gpu=use_gpu,
                 logging_level="WARNING",
-                **kwargs
+                **kwargs,
             )
         else:
             if STANZA_AVAILABLE:
-                return load_parser(model_or_lang, parser="stanza", is_tokenized=is_tokenized, use_gpu=use_gpu, **kwargs)
+                return load_parser(
+                    model_or_lang, parser="stanza", is_tokenized=is_tokenized, use_gpu=use_gpu, **kwargs
+                )
             elif SPACY_AVAILABLE:
                 return load_parser(model_or_lang, parser="spacy", is_tokenized=is_tokenized, use_gpu=use_gpu, **kwargs)
             else:
@@ -141,6 +152,7 @@ def load_parser(model_or_lang: str, parser:Optional[str]=None, *, auto_download:
 try:
     from functools import cached_property
 except (ImportError, AttributeError):
+
     class cached_property(property):
         """
         Descriptor that mimics @property but caches output in member variable.

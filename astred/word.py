@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, NamedTuple, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List, NamedTuple
 
 from .base import Crossable
 from .utils import SPACY_AVAILABLE, STANZA_AVAILABLE
+
 
 if TYPE_CHECKING:
     from .span import Span, SpanPair
@@ -83,7 +84,7 @@ class Word(Crossable):
             upos=word.pos_,
             xpos=word.tag_,
             feats=word.morph if word.morph else "_",
-            _word=word
+            _word=word,
         )
 
     @classmethod
@@ -98,7 +99,7 @@ class Word(Crossable):
             upos=word.upos,
             xpos=word.xpos,
             feats=word.feats if word.feats else "_",
-            _word=word
+            _word=word,
         )
 
 

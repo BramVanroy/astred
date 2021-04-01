@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import List, Optional, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, List, Optional, Union
 
 from .utils import SPACY_AVAILABLE, STANZA_AVAILABLE, load_parser
+
 
 if SPACY_AVAILABLE:
     from spacy.language import Language as SpacyLanguage
@@ -21,6 +22,7 @@ from .enum import Side
 from .span import Span
 from .tree import Tree
 from .word import Null, Word
+
 
 logger = logging.getLogger("astred")
 
@@ -111,15 +113,19 @@ class Sentence(SpanMixin):
                 sents_repr = "\n".join([" ".join([w.text for w in sent.words]) for sent in sents])
 
             if on_multiple == "raise":
-                raise ValueError(f"More than one sentence given, which is not allowed. If you wish to be more lenient,"
-                                 f" you can set 'on_multiple' to warn or ignore.\nIn those cases only the first"
-                                 f" sentence of those available will be used, but be aware that this may lead to"
-                                 f" unexpected results.\nAlternatively, you can use the 'none' option, which will"
-                                 f" return None if a parse contains more than one sentence."
-                                 f"\n\nSentences:\n{sents_repr}")
+                raise ValueError(
+                    f"More than one sentence given, which is not allowed. If you wish to be more lenient,"
+                    f" you can set 'on_multiple' to warn or ignore.\nIn those cases only the first"
+                    f" sentence of those available will be used, but be aware that this may lead to"
+                    f" unexpected results.\nAlternatively, you can use the 'none' option, which will"
+                    f" return None if a parse contains more than one sentence."
+                    f"\n\nSentences:\n{sents_repr}"
+                )
             elif on_multiple == "warn":
-                logger.warning("More than one sentence found in this parse. Will only use the first one."
-                               f"\n\nSentences:\n{sents_repr}")
+                logger.warning(
+                    "More than one sentence found in this parse. Will only use the first one."
+                    f"\n\nSentences:\n{sents_repr}"
+                )
             elif on_multiple == "none":
                 return None
 
@@ -128,9 +134,12 @@ class Sentence(SpanMixin):
         return sents[0]
 
     @classmethod
-    def from_parser(cls, doc: Union[StanzaDoc, StanzaSentence, SpacyDoc, SpacySpan],
-                    include_subtypes: bool = False,
-                    on_multiple: str = "raise") -> Sentence:
+    def from_parser(
+        cls,
+        doc: Union[StanzaDoc, StanzaSentence, SpacyDoc, SpacySpan],
+        include_subtypes: bool = False,
+        on_multiple: str = "raise",
+    ) -> Sentence:
         if on_multiple not in ("raise", "warn", "ignore", "none"):
             raise ValueError(f"'on_multiple' must be one of raise, warn, ignore ({on_multiple} given)")
 
@@ -144,22 +153,32 @@ class Sentence(SpanMixin):
             sentence = doc
 
         if isinstance(sentence, StanzaSentence):
-            return cls([Word.from_stanza(w, include_subtypes=include_subtypes) for w in sentence.words],
-                       _sentence=sentence)
+            return cls(
+                [Word.from_stanza(w, include_subtypes=include_subtypes) for w in sentence.words], _sentence=sentence
+            )
         elif isinstance(sentence, SpacySpan):
             return cls([Word.from_spacy(w, include_subtypes=include_subtypes) for w in sentence], _sentence=sentence)
 
     @classmethod
-    def from_text(cls, text: str,
-                  nlp_or_model: Union[StanzaPipeline, SpacyLanguage, str],
-                  parser: str = None,
-                  is_tokenized: bool = True,
-                  include_subtypes: bool = False,
-                  on_multiple: str = "raise",
-                  **kwargs) -> Sentence:
-        if ((STANZA_AVAILABLE and isinstance(nlp_or_model, StanzaPipeline))
-                or (SPACY_AVAILABLE and isinstance(nlp_or_model, SpacyLanguage))):
+    def from_text(
+        cls,
+        text: str,
+        nlp_or_model: Union[StanzaPipeline, SpacyLanguage, str],
+        parser: str = None,
+        is_tokenized: bool = True,
+        include_subtypes: bool = False,
+        on_multiple: str = "raise",
+        **kwargs,
+    ) -> Sentence:
+        if (STANZA_AVAILABLE and isinstance(nlp_or_model, StanzaPipeline)) or (
+            SPACY_AVAILABLE and isinstance(nlp_or_model, SpacyLanguage)
+        ):
             return cls.from_parser(nlp_or_model(text), include_subtypes=include_subtypes, on_multiple=on_multiple)
         else:
             nlp = load_parser(nlp_or_model, parser, is_tokenized=is_tokenized, **kwargs)
-            return cls.from_text(text, nlp, include_subtypes=include_subtypes,  on_multiple=on_multiple,)
+            return cls.from_text(
+                text,
+                nlp,
+                include_subtypes=include_subtypes,
+                on_multiple=on_multiple,
+            )

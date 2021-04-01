@@ -1,7 +1,7 @@
 from __future__ import annotations  # so that we can use the class in typing
 
 from dataclasses import dataclass, field
-from typing import Dict, List, NamedTuple, Optional, TYPE_CHECKING
+from typing import Dict, List, NamedTuple, Optional
 
 from .base import Crossable, SpanMixin
 from .enum import SpanType

@@ -12,7 +12,7 @@ from .pairs import IdxPair
 from .sentence import Sentence
 from .span import NullSpan, Span, SpanPair
 from .tree import AstredConfig, Tree
-from .utils import pair_combs, rebase_to_idxs, unique_list, cached_property
+from .utils import cached_property, pair_combs, rebase_to_idxs, unique_list
 from .word import WordPair, spanpair_to_wordpairs
 
 

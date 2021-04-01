@@ -3,10 +3,10 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from statistics import mean
-from typing import Dict, List, Optional, TYPE_CHECKING
-
+from typing import TYPE_CHECKING, Dict, List, Optional
 
 from .enum import Direction, Side
+
 
 if TYPE_CHECKING:
     from .sentence import Sentence

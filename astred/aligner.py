@@ -2,12 +2,13 @@ import itertools
 import operator
 from dataclasses import dataclass, field
 
+
 # no need to have these in utils as only the Aligner class uses them
 try:
+    import torch
     from awesome_align.configuration_bert import BertConfig
     from awesome_align.modeling import BertForMaskedLM
     from awesome_align.tokenization_bert import BertTokenizer
-    import torch
 
     awesome_align_available = True
 except (ImportError, AttributeError):
