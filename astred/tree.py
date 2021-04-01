@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from operator import attrgetter
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, List, Optional, TYPE_CHECKING, Tuple, Union
 
 from apted import APTED
 from apted import Config as AptedConfig
@@ -11,12 +11,17 @@ from nltk.tree import ParentedTree as NltkTree
 
 from .enum import EditOperation
 
+if TYPE_CHECKING:
+    from .word import Word
+    from .sentence import Sentence
+    from .base import SpanMixin
+
 
 class AstredConfig(AptedConfig):
     def __init__(self, attr="connected_repr", costs=None):
         self.attr = attr
         if costs and not all(
-            op in costs for op in (EditOperation.DELETION, EditOperation.INSERTION, EditOperation.RENAME)
+                op in costs for op in (EditOperation.DELETION, EditOperation.INSERTION, EditOperation.RENAME)
         ):
             raise ValueError(
                 "when 'costs' is given, it must contain values for EditOperations 'DELETION',"
@@ -47,12 +52,12 @@ class AstredConfig(AptedConfig):
 
 @dataclass
 class Tree:
-    node: Any
+    node: Word
     children: List[Tree] = field(default_factory=list)
     level: int = field(default=0)
     parent: Tree = field(default=None, repr=False, init=False)
     root: Tree = field(default=None, repr=False, init=False)
-    doc: Any = field(default=None, repr=False)
+    doc: Sentence = field(default=None, repr=False)
     astred_op: EditOperation = field(default=None, init=False)
 
     def __repr__(self):
@@ -62,7 +67,7 @@ class Tree:
         )
 
     @property
-    def ted_config(self):
+    def ted_config(self) -> AstredConfig:
         return self.doc.aligned_sentences.ted_config if self.doc else None
 
     @property
@@ -70,8 +75,8 @@ class Tree:
         return self.ted_config.costs[self.astred_op] if self.astred_op else None
 
     @property
-    def depth(self):
-        def max_depth(node):
+    def depth(self) -> int:
+        def max_depth(node: Tree):
             if not node.children:
                 return 1
 
@@ -90,7 +95,7 @@ class Tree:
 
         self.attach_self_to_node()
 
-    def as_embedded_tuples(self):
+    def as_embedded_tuples(self) -> Tuple[Word, List]:
         """Create embedded/recursive tuples in the form of (ROOT, [(child1, [subchildren...]), (child2, [subchildren2...]), ...])
         Returns
         -------
@@ -102,7 +107,7 @@ class Tree:
 
         return children(self)
 
-    def subtrees(self, include_self: bool = True):
+    def subtrees(self, include_self: bool = True) -> List[Tree]:
         """Return a flat list of the unique, full subtrees (so no combinations or subparts of subtrees)
         Parameters
         ----------
@@ -113,7 +118,7 @@ class Tree:
 
         """
 
-        def _recursive_children(node, _descendants=None):
+        def _recursive_children(node: Tree, _descendants:Optional[List[Tree]]=None):
             if _descendants is None:
                 _descendants = []
             else:
@@ -142,23 +147,23 @@ class Tree:
         for subtree in self.subtrees(include_self=False):
             subtree.root = self
 
-    def to_latex(self, attrs: Union[List[str], str] = "text", method="forest", **kwargs):
+    def to_latex(self, attrs: Union[List[str], str] = "text", method="forest", **kwargs) -> str:
         s = r"\begin{forest}" if method == "forest" else ""
         s += "\n" + self.to_string(attrs, parens="[]", pretty=True, **kwargs) + "\n"
         s += r"\end{forest}" if method == "forest" else ""
         return s
 
     def to_string(
-        self,
-        attrs: Union[List[str], str] = "text",
-        attrs_sep: str = ":",
-        parens: Union[List[str], Tuple[str], str] = "()",
-        pretty: bool = False,
-        end_on_newline: bool = False,
-        node_sep: str = " ",
-        indent: str = "\t",
-        wrappers: Optional[Union[List[Tuple[str]], Tuple[str]]] = None,
-    ):
+            self,
+            attrs: Union[List[str], str] = "text",
+            attrs_sep: str = ":",
+            parens: Union[List[str], Tuple[str], str] = "()",
+            pretty: bool = False,
+            end_on_newline: bool = False,
+            node_sep: str = " ",
+            indent: str = "\t",
+            wrappers: Optional[Union[List[Tuple[str]], Tuple[str]]] = None,
+    ) -> str:
         if len(parens) != 2:
             raise ValueError(
                 "'parens' must contain exactly two characters to use as" " the start and end character respectively"
@@ -173,7 +178,7 @@ class Tree:
 
         wrappers = wrappers if wrappers else [None] * len(attrs)
 
-        def build_str(tree, is_last_child=True):
+        def build_str(tree: Tree, is_last_child:bool=True):
             s = start_parens
             s += (
                 tree.node
@@ -199,7 +204,7 @@ class Tree:
 
         return build_str(self)
 
-    def get_distance(self, tgt_tree: Tree, config=None):
+    def get_distance(self, tgt_tree: Tree, config:Optional[AstredConfig]=None) -> Tuple[int, List[Tuple[Tree]]]:
         """Calculate the distance between self and target tree.
         :return: the tree edit distance for the given trees and the required operations
         """
@@ -211,7 +216,7 @@ class Tree:
         return dist, opts
 
     @classmethod
-    def from_sentence(cls, sentence: Any):
+    def from_sentence(cls, sentence: Sentence) -> Tree:
         sent_root = [word for word in sentence if word.is_root]
         n_roots = len(sent_root)
 
@@ -224,15 +229,15 @@ class Tree:
         return cls.from_span(sentence, sent_root, sentence)
 
     @classmethod
-    def from_span(cls, span, span_root, doc=None):
+    def from_span(cls, span: SpanMixin, span_root: Word, doc: Optional[Sentence] = None):
         if span_root not in span:
             raise ValueError("'span_root' must be an element of 'span'")
 
-        def get_children(head_idx):
+        def get_children(head_idx:int):
             return sorted([word for word in span if word.head == head_idx], key=attrgetter("id"))
 
-        def parse(root, level=-1):
-            children = get_children(int(root.id))
+        def parse(root: Word, level:int=-1):
+            children = get_children(root.id)
             level += 1
             child_trees = [parse(n, level=level) for n in children] if children else []
             return cls(root, children=child_trees, level=level, doc=doc)
@@ -242,13 +247,6 @@ class Tree:
     @classmethod
     def draw_trees(cls, *trees, **to_string_kwargs):
         strings = [tree.to_string(**to_string_kwargs) for tree in trees]
-        try:
-            nltk_trees = [NltkTree.fromstring(s) for s in strings]
-        except Exception as e:
-            raise ValueError(
-                "When calling 'draw_trees' on a subclass of TreeBase, the implementation of 'to_string'"
-                " MUST be compatible with NLTK's Tree.fronstring method."
-                " See the stacktrace above for more details."
-            ) from e
+        nltk_trees = [NltkTree.fromstring(s) for s in strings]
 
         draw_trees(*nltk_trees)

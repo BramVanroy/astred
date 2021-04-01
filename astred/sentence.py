@@ -2,19 +2,19 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, List, Optional, Union
+from typing import List, Optional, TYPE_CHECKING, Union
 
 from .utils import SPACY_AVAILABLE, STANZA_AVAILABLE, load_parser
-
-if STANZA_AVAILABLE:
-    from stanza.models.common.doc import Document as StanzaDoc
-    from stanza.models.common.doc import Sentence as StanzaSentence
-    from stanza.pipeline.core import Pipeline as StanzaPipeline
 
 if SPACY_AVAILABLE:
     from spacy.language import Language as SpacyLanguage
     from spacy.tokens.doc import Doc as SpacyDoc
     from spacy.tokens.span import Span as SpacySpan
+
+if STANZA_AVAILABLE:
+    from stanza.models.common.doc import Document as StanzaDoc
+    from stanza.models.common.doc import Sentence as StanzaSentence
+    from stanza.pipeline.core import Pipeline as StanzaPipeline
 
 from .base import SpanMixin
 from .enum import Side
@@ -23,6 +23,9 @@ from .tree import Tree
 from .word import Null, Word
 
 logger = logging.getLogger("astred")
+
+if TYPE_CHECKING:
+    from .aligned import AlignedSentences
 
 
 @dataclass(eq=False)
@@ -33,13 +36,13 @@ class Sentence(SpanMixin):
     tree: Tree = field(default=None, compare=False, repr=False, init=False)
     merged_tree: Tree = field(default=None, compare=False, repr=False, init=False)
     _aligned_sentence: Sentence = field(default=None, repr=False, init=False)
-    aligned_sentences: Any = field(default=None, repr=False, init=False)
+    aligned_sentences: AlignedSentences = field(default=None, repr=False, init=False)
     root: Word = field(default=None, repr=False, init=False)
 
     seq_spans: List[Span] = field(default_factory=list, compare=False, repr=False, init=False)
     sacr_spans: List[Span] = field(default_factory=list, compare=False, repr=False, init=False)
 
-    _sentence: Any = field(default=None, repr=False)
+    _sentence: Union[StanzaSentence, SpacySpan] = field(default=None, repr=False)
 
     def __repr__(self):
         return (
@@ -66,7 +69,7 @@ class Sentence(SpanMixin):
             self.root = roots[0]
 
     @property
-    def aligned_sentence(self):
+    def aligned_sentence(self) -> Sentence:
         return self._aligned_sentence
 
     @aligned_sentence.setter
@@ -88,11 +91,11 @@ class Sentence(SpanMixin):
         return self.aligned_sentences.sacr_cross if self.aligned_sentences else None
 
     @property
-    def no_null_seq_spans(self):
+    def no_null_seq_spans(self) -> List[Span]:
         return [s for s in self.seq_spans if not s.is_null]
 
     @property
-    def no_null_sacr_spans(self):
+    def no_null_sacr_spans(self) -> List[Span]:
         return [s for s in self.sacr_spans if not s.is_null]
 
     def attach_self_to_words(self):
@@ -100,7 +103,7 @@ class Sentence(SpanMixin):
             word.doc = self
 
     @staticmethod
-    def _on_multiple_error_handling(sents, on_multiple: str = "raise"):
+    def _on_multiple_error_handling(sents, on_multiple: str = "raise") -> Optional[Union[StanzaSentence, SpacySpan]]:
         if len(sents) > 1:
             try:
                 sents_repr = "\n".join([" ".join([w.text for w in sent]) for sent in sents])
@@ -127,7 +130,7 @@ class Sentence(SpanMixin):
     @classmethod
     def from_parser(cls, doc: Union[StanzaDoc, StanzaSentence, SpacyDoc, SpacySpan],
                     include_subtypes: bool = False,
-                    on_multiple: str = "raise"):
+                    on_multiple: str = "raise") -> Sentence:
         if on_multiple not in ("raise", "warn", "ignore", "none"):
             raise ValueError(f"'on_multiple' must be one of raise, warn, ignore ({on_multiple} given)")
 
@@ -153,7 +156,7 @@ class Sentence(SpanMixin):
                   is_tokenized: bool = True,
                   include_subtypes: bool = False,
                   on_multiple: str = "raise",
-                  **kwargs):
+                  **kwargs) -> Sentence:
         if ((STANZA_AVAILABLE and isinstance(nlp_or_model, StanzaPipeline))
                 or (SPACY_AVAILABLE and isinstance(nlp_or_model, SpacyLanguage))):
             return cls.from_parser(nlp_or_model(text), include_subtypes=include_subtypes, on_multiple=on_multiple)

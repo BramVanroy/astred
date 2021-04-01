@@ -1,7 +1,7 @@
 from __future__ import annotations  # so that we can use the class in typing
 
 from dataclasses import dataclass, field
-from typing import Dict, List, NamedTuple, Optional
+from typing import Dict, List, NamedTuple, Optional, TYPE_CHECKING
 
 from .base import Crossable, SpanMixin
 from .enum import SpanType
@@ -57,7 +57,7 @@ class Span(Crossable, SpanMixin):
             setattr(word, f"id_in_{attr}", word_idx)
 
     @cached_property
-    def items_per_level(self) -> Optional[Dict[int, List]]:
+    def items_per_level(self) -> Optional[Dict[int, List[Word]]]:
         # When some word in this span does not have its tree set, this should fail
         try:
             levels = set([word.tree.level for word in self])
@@ -67,7 +67,7 @@ class Span(Crossable, SpanMixin):
         return {level: [word for word in self if word.tree.level == level] for level in sorted(levels, reverse=True)}
 
     @cached_property
-    def root(self):
+    def root(self) -> Optional[Word]:
         if self.root_level is not None:
             return self.items_per_level[self.root_level][0]
         else:
@@ -101,7 +101,7 @@ class Span(Crossable, SpanMixin):
         return not any(w.head not in self.word_idxs for w in self if w.tree.level != self.root_level)
 
     @classmethod
-    def sacr_from_seq(cls, span: Span, idx: int):
+    def sacr_from_seq(cls, span: Span, idx: int) -> Span:
         return cls(id=idx, doc=span.doc, is_null=span.is_null, words=span.words)
 
 

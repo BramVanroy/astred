@@ -3,15 +3,20 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from statistics import mean
-from typing import Any, Dict, List
+from typing import Dict, List, Optional, TYPE_CHECKING
+
 
 from .enum import Direction, Side
+
+if TYPE_CHECKING:
+    from .sentence import Sentence
+    from .word import Word
 
 
 @dataclass(eq=False)
 class Crossable:
     id: int
-    doc: Any = field(default=None, repr=False)
+    doc: Sentence = field(default=None, repr=False)
 
     aligned: List[Crossable] = field(default_factory=list, init=False, repr=False)
     aligned_directions: Dict[int, Direction] = field(default_factory=dict, init=False, repr=False)
@@ -56,18 +61,18 @@ class Crossable:
             )
             self.aligned_cross[item.id] = 0
 
-    def get_direction_to_item(self, item):
+    def get_direction_to_item(self, item) -> Direction:
         idx = self.aligned.index(item)
         return self.aligned_directions[idx]
 
 
 class SpanMixin(ABC):
     @property
-    def text(self):
+    def text(self) -> str:
         return " ".join([w.text for w in self.no_null_words])
 
     @property
-    def word_idxs(self):
+    def word_idxs(self) -> List[int]:
         return [w.id for w in self.words]
 
     def __getitem__(self, idx):
@@ -79,7 +84,7 @@ class SpanMixin(ABC):
     def __len__(self):
         return len(self.words)
 
-    def num_changes(self, attr="deprel"):
+    def num_changes(self, attr="deprel") -> Optional[int]:
         changes = [w.num_changes(attr=attr) for w in self.no_null_words]
 
         if all([c is None for c in changes]):
@@ -88,7 +93,7 @@ class SpanMixin(ABC):
             return sum([c for c in changes if c is not None])
 
     @property
-    def no_null_words(self):
+    def no_null_words(self) -> List[Word]:
         return [w for w in self if not w.is_null]
 
     @abstractmethod

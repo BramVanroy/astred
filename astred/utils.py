@@ -1,4 +1,4 @@
-from typing import Generator, List, Union
+from typing import Generator, List, Optional, Union
 
 try:
     import stanza
@@ -96,7 +96,7 @@ def pair_combs(all_pairs: List, min_length: int = 2) -> Generator[List, None, No
             yield pairs
 
 
-def load_parser(model_or_lang, parser=None, *, auto_download=True, is_tokenized=True, use_gpu=True, **kwargs):
+def load_parser(model_or_lang: str, parser:Optional[str]=None, *, auto_download:bool=True, is_tokenized:bool=True, use_gpu:bool=True, **kwargs):
     try:
         if parser == "spacy":
             if use_gpu:
@@ -160,5 +160,3 @@ except (ImportError, AttributeError):
                 cached = self.fget(obj)
                 setattr(obj, attr, cached)
             return cached
-
-
