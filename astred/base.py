@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from statistics import mean
-from typing import Iterator, TYPE_CHECKING, Dict, List, Optional
+from typing import TYPE_CHECKING, Dict, Iterator, List, Optional
 
 from .enum import Direction, Side
 
