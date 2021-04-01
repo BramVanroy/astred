@@ -10,14 +10,13 @@ Example notebooks
 A couple example notebooks exist, each with a different grade of automation for the initialisation of the aligned object. 
 Once an aligned object has been created, the functionality is identical.
 
-- `High automation`_: *automate all the things*. Tokenisation, parsing, and word alignment is done automatically.
-- `Normal automation`_: the typical scenario where you have tokenised and aligned text that is not parsed yet
-- `No automation`_: full-manual mode, where you provide all the required information, including dependency labels and heads
+- `High automation`_: *automate all the things*. Tokenisation, parsing, and word alignment is done automatically [`Try on Colab <https://colab.research.google.com/github/BramVanroy/astred/blob/master/examples/full-auto.ipynb>`__]
+- `Normal automation`_: the typical scenario where you have tokenised and aligned text that is not parsed yet [`Try on Colab <https://colab.research.google.com/github/BramVanroy/astred/blob/master/examples/automatic-parsing.ipynb>`__]
+- `No automation`_: full-manual mode, where you provide all the required information, including dependency labels and heads [`Try on Colab <https://colab.research.google.com/github/BramVanroy/astred/blob/master/examples/full-manual.ipynb>`__]
 
 .. _High automation: examples/full-auto.ipynb
 .. _Normal automation: examples/automatic-parsing.ipynb
 .. _No automation: examples/full-manual.ipynb
-
 
 Installation
 ------------
