@@ -144,19 +144,19 @@ class Sentence(SpanMixin):
             raise ValueError(f"'on_multiple' must be one of raise, warn, ignore ({on_multiple} given)")
 
         # If the given element is a full parsed doc, we need to check how many sentences it has (we only want one)
-        if isinstance(doc, StanzaDoc):
+        if STANZA_AVAILABLE and isinstance(doc, StanzaDoc):
             sentence = cls._on_multiple_error_handling(doc.sentences, on_multiple=on_multiple)
-        elif isinstance(doc, SpacyDoc):
+        elif SPACY_AVAILABLE and isinstance(doc, SpacyDoc):
             sentence = cls._on_multiple_error_handling(list(doc.sents), on_multiple=on_multiple)
         else:
             # If it is a StanzaSentence or SpacySpan, we can just continue with that
             sentence = doc
 
-        if isinstance(sentence, StanzaSentence):
+        if STANZA_AVAILABLE and isinstance(sentence, StanzaSentence):
             return cls(
                 [Word.from_stanza(w, include_subtypes=include_subtypes) for w in sentence.words], _sentence=sentence
             )
-        elif isinstance(sentence, SpacySpan):
+        elif SPACY_AVAILABLE and isinstance(sentence, SpacySpan):
             return cls([Word.from_spacy(w, include_subtypes=include_subtypes) for w in sentence], _sentence=sentence)
 
     @classmethod
