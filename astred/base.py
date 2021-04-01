@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from statistics import mean
-from typing import TYPE_CHECKING, Dict, List, Optional
+from typing import Iterator, TYPE_CHECKING, Dict, List, Optional
 
 from .enum import Direction, Side
 
@@ -48,6 +48,10 @@ class Crossable:
     def cross(self) -> int:
         return sum(self.aligned_cross.values()) if self.aligned_cross else None
 
+    @property
+    def is_aligned(self) -> bool:
+        return bool(self.aligned) and all([not w.is_null for w in self.aligned])
+
     def add_aligned(self, item):
         self.aligned.append(item)
 
@@ -75,13 +79,13 @@ class SpanMixin(ABC):
     def word_idxs(self) -> List[int]:
         return [w.id for w in self.words]
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx) -> Word:
         return self.words[idx]
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Word]:
         return iter(self.words)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.words)
 
     def num_changes(self, attr="deprel") -> Optional[int]:
