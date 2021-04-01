@@ -1,6 +1,8 @@
 from pathlib import Path
 from setuptools import setup
 
+from astred import __version__
+
 extras = {"stanza": ["stanza"],
           "spacy": ["spacy>=3.0"]}
 
@@ -10,7 +12,7 @@ extras["dev"] = extras["all"] + ["isort>=5.5.4", "black", "flake8", "pytest", "p
 
 setup(
     name="astred",
-    version="0.9.1",
+    version=__version__,
     description="A collection of syntactic metrics to calculate (dis)similarities between source and target sentences.",
     long_description=Path("README.rst").read_text(encoding="utf-8"),
     long_description_content_type="text/x-rst",
