@@ -39,6 +39,8 @@ class Sentence(SpanMixin):
     seq_spans: List[Span] = field(default_factory=list, compare=False, repr=False, init=False)
     sacr_spans: List[Span] = field(default_factory=list, compare=False, repr=False, init=False)
 
+    _sentence: Any = field(default=None, repr=False)
+
     def __repr__(self):
         return (
             f"{self.__class__.__name__}(text={self.text}, side={self.side},"
@@ -97,67 +99,64 @@ class Sentence(SpanMixin):
         for word in self.words:
             word.doc = self
 
+    @staticmethod
+    def _on_multiple_error_handling(sents, on_multiple: str = "raise"):
+        if len(sents) > 1:
+            try:
+                sents_repr = "\n".join([" ".join([w.text for w in sent]) for sent in sents])
+            except TypeError:
+                sents_repr = "\n".join([" ".join([w.text for w in sent.words]) for sent in sents])
+
+            if on_multiple == "raise":
+                raise ValueError(f"More than one sentence given, which is not allowed. If you wish to be more lenient,"
+                                 f" you can set 'on_multiple' to warn or ignore.\nIn those cases only the first"
+                                 f" sentence of those available will be used, but be aware that this may lead to"
+                                 f" unexpected results.\nAlternatively, you can use the 'none' option, which will"
+                                 f" return None if a parse contains more than one sentence."
+                                 f"\n\nSentences:\n{sents_repr}")
+            elif on_multiple == "warn":
+                logger.warning("More than one sentence found in this parse. Will only use the first one."
+                               f"\n\nSentences:\n{sents_repr}")
+            elif on_multiple == "none":
+                return None
+
+        # At this point, either only one sent is given and we need the first one, or multiple ones are given and we
+        # have warned the user about it.
+        return sents[0]
+
     @classmethod
-    def from_stanza(cls, doc: Union[StanzaDoc, StanzaSentence], include_subtypes: bool = False):
-        # doc can either be a Sentence or a Doc. In the latter case we only use the first sentence in it.
+    def from_parser(cls, doc: Union[StanzaDoc, StanzaSentence, SpacyDoc, SpacySpan],
+                    include_subtypes: bool = False,
+                    on_multiple: str = "raise"):
+        if on_multiple not in ("raise", "warn", "ignore", "none"):
+            raise ValueError(f"'on_multiple' must be one of raise, warn, ignore ({on_multiple} given)")
+
+        # If the given element is a full parsed doc, we need to check how many sentences it has (we only want one)
         if isinstance(doc, StanzaDoc):
-            if len(doc.sentences) > 1:
-                logger.warning("More than one sentence found in this stanza parse. Will only use the first once.")
-            sentence = doc.sentences[0]
+            sentence = cls._on_multiple_error_handling(doc.sentences, on_multiple=on_multiple)
+        elif isinstance(doc, SpacyDoc):
+            sentence = cls._on_multiple_error_handling(list(doc.sents), on_multiple=on_multiple)
         else:
+            # If it is a StanzaSentence or SpacySpan, we can just continue with that
             sentence = doc
 
-        # Stanza starts counting at 1 (0 reserved for a ROOT node). We also start at 1 so that 0 can be used for Null
-        return cls(
-            [
-                Word(
-                    id=int(w.id),
-                    text=w.text,
-                    lemma=w.lemma,
-                    head=int(w.head),
-                    deprel=w.deprel if include_subtypes else w.deprel.split(":")[0],
-                    upos=w.upos,
-                    xpos=w.xpos,
-                    feats=w.feats if w.feats else "_",
-                )
-                for w in sentence.words
-            ]
-        )
+        if isinstance(sentence, StanzaSentence):
+            return cls([Word.from_stanza(w, include_subtypes=include_subtypes) for w in sentence.words],
+                       _sentence=sentence)
+        elif isinstance(sentence, SpacySpan):
+            return cls([Word.from_spacy(w, include_subtypes=include_subtypes) for w in sentence], _sentence=sentence)
 
     @classmethod
-    def from_spacy(cls, doc: Union[SpacyDoc, SpacySpan], include_subtypes: bool = False):
-        if isinstance(doc, SpacyDoc):
-            sents = list(doc.sents)
-            if len(sents) > 1:
-                logger.warning("More than one sentence found in this spaCy parse. Will only use the first once.")
-            sentence = sents[0]
-        else:
-            sentence = doc
-
-        # Stanza starts counting at 1 (0 reserved for a ROOT node). We also start at 1 so that 0 can be used for Null
-        return cls(
-            [
-                Word(
-                    id=w.i + 1,
-                    text=w.text,
-                    lemma=w.lemma_,
-                    head=0 if w.head.i == w.i else w.head.i + 1,
-                    deprel=w.dep_ if include_subtypes else w.dep_.split(":")[0],
-                    upos=w.pos_,
-                    xpos=w.tag_,
-                    feats=w.morph if w.morph else "_",
-                )
-                for w in sentence
-            ]
-        )
-
-    @classmethod
-    def from_text(cls, text: str, nlp_or_model: Union[StanzaPipeline, SpacyLanguage, str], parser: str = None,
-                  is_tokenized: bool = True, **kwargs):
-        if STANZA_AVAILABLE and isinstance(nlp_or_model, StanzaPipeline):
-            return cls.from_stanza(nlp_or_model(text))
-        elif SPACY_AVAILABLE and isinstance(nlp_or_model, SpacyLanguage):
-            return cls.from_spacy(nlp_or_model(text))
+    def from_text(cls, text: str,
+                  nlp_or_model: Union[StanzaPipeline, SpacyLanguage, str],
+                  parser: str = None,
+                  is_tokenized: bool = True,
+                  include_subtypes: bool = False,
+                  on_multiple: str = "raise",
+                  **kwargs):
+        if ((STANZA_AVAILABLE and isinstance(nlp_or_model, StanzaPipeline))
+                or (SPACY_AVAILABLE and isinstance(nlp_or_model, SpacyLanguage))):
+            return cls.from_parser(nlp_or_model(text), include_subtypes=include_subtypes, on_multiple=on_multiple)
         else:
             nlp = load_parser(nlp_or_model, parser, is_tokenized=is_tokenized, **kwargs)
-            return cls.from_text(text, nlp)
+            return cls.from_text(text, nlp, include_subtypes=include_subtypes,  on_multiple=on_multiple,)

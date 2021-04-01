@@ -26,6 +26,8 @@ class Word(Crossable):
     connected: List[Word] = field(default_factory=list, init=False, repr=False)
     connected_repr: str = field(default=None, init=False, repr=False)
 
+    _word: Any = field(default=None, repr=False)
+
     @property
     def is_root(self):
         return self.head == 0
@@ -57,6 +59,36 @@ class Word(Crossable):
     def avg_num_changes(self, attr="deprel") -> float:
         changes = self.changes(attr)
         return (sum(changes.values()) / len(changes)) if changes else None
+
+    @classmethod
+    def from_spacy(cls, word, include_subtypes=False):
+        # Spacy starts counting at 0, so +1.
+        return cls(
+            id=word.i + 1,
+            text=word.text,
+            lemma=word.lemma_,
+            head=0 if word.head.i == word.i else word.head.i + 1,  # the root node is its own head, so check
+            deprel=word.dep_ if include_subtypes else word.dep_.split(":")[0],
+            upos=word.pos_,
+            xpos=word.tag_,
+            feats=word.morph if word.morph else "_",
+            _word=word
+        )
+
+    @classmethod
+    def from_stanza(cls, word, include_subtypes=False):
+        # Stanza starts counting at 1 (0 reserved for a ROOT node). We also start at 1 so that 0 can be used for Null
+        return cls(
+            id=int(word.id),
+            text=word.text,
+            lemma=word.lemma,
+            head=int(word.head),
+            deprel=word.deprel if include_subtypes else word.deprel.split(":")[0],
+            upos=word.upos,
+            xpos=word.xpos,
+            feats=word.feats if word.feats else "_",
+            _word=word
+        )
 
 
 class Null(Word):
