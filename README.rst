@@ -60,7 +60,7 @@ If you are using pip, you can run the following command:
 Awesome Align requires PyTorch, like :code:`stanza` above.
 
 If it is installed, you can initialize :code:`AlignedSentences` without providing word alignments. Those will be added
-automatically behind the scenes. See `this example notebook`_ for more.
+automatically behind the scenes. See `this example notebook`_ [`Try on Colab <https://colab.research.google.com/github/BramVanroy/astred/blob/master/examples/full-auto.ipynb>`__] for more.
 
 .. code-block:: bash
 
