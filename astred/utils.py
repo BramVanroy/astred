@@ -1,4 +1,10 @@
+import logging
 from typing import Generator, List, Optional, Union
+
+from packaging import version
+
+
+logger = logging.getLogger("astred")
 
 
 try:
@@ -11,11 +17,16 @@ except (ImportError, AttributeError):
 
 try:
     import spacy
-    from spacy.language import Language as SpacyLanguage
-    from spacy.tokens import Doc as SpacyDoc
-    from spacy.vocab import Vocab as SpacyVocab
 
-    SPACY_AVAILABLE = True
+    if version.parse(spacy.__version__) >= version.parse("3.0"):
+        from spacy.language import Language as SpacyLanguage
+        from spacy.tokens import Doc as SpacyDoc
+        from spacy.vocab import Vocab as SpacyVocab
+
+        SPACY_AVAILABLE = True
+        logger.warning(f"spaCy {spacy.__version__} is installed but at least version 3.0 is required")
+    else:
+        raise ImportError
 except ImportError:
     SPACY_AVAILABLE = False
 
