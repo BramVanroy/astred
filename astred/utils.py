@@ -24,8 +24,8 @@ try:
         from spacy.vocab import Vocab as SpacyVocab
 
         SPACY_AVAILABLE = True
-        logger.warning(f"spaCy {spacy.__version__} is installed but at least version 3.0 is required")
     else:
+        logger.warning(f"spaCy {spacy.__version__} is installed but at least version 3.0 is required")
         raise ImportError
 except ImportError:
     SPACY_AVAILABLE = False
