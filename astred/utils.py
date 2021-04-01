@@ -96,7 +96,7 @@ def pair_combs(all_pairs: List, min_length: int = 2) -> Generator[List, None, No
             yield pairs
 
 
-def load_parser(model_or_lang, parser=None, *, is_tokenized=True, use_gpu=True, **kwargs):
+def load_parser(model_or_lang, parser=None, *, auto_download=True, is_tokenized=True, use_gpu=True, **kwargs):
     try:
         if parser == "spacy":
             if use_gpu:
@@ -113,7 +113,8 @@ def load_parser(model_or_lang, parser=None, *, is_tokenized=True, use_gpu=True, 
             else:
                 nlp = spacy.load(model_or_lang, **kwargs)
         elif parser == "stanza":
-            stanza.download(model_or_lang)
+            if auto_download:
+                stanza.download(model_or_lang, verbose=False)
             nlp = StanzaPipeline(
                 processors="tokenize,pos,lemma,depparse",
                 lang=model_or_lang,
