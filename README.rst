@@ -1,5 +1,5 @@
-Syntactic equivalence metrics
-=============================
+Easily comparing two word-aligned sentences with ASTrED
+=======================================================
 
 Documentation, and more tests to be added.
 
