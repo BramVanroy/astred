@@ -22,6 +22,7 @@ try:
         from spacy.language import Language as SpacyLanguage
         from spacy.tokens import Doc as SpacyDoc
         from spacy.vocab import Vocab as SpacyVocab
+        from spacy.util import get_installed_models
 
         SPACY_AVAILABLE = True
     else:
@@ -124,14 +125,27 @@ def load_parser(
             else:
                 spacy.require_cpu()
 
+            # Disable sentence segmentation through senter or sentencizer component as well
+            exclude = ["senter", "sentencizer"] if is_tokenized else []
+
+            try:
+                nlp = spacy.load(model_or_lang, exclude=exclude, **kwargs)
+            except OSError as exc:
+                try:
+                    model_name = next(m for m in get_installed_models() if m.startswith(f"{model_or_lang}_"))
+                except StopIteration:
+                    raise OSError(f"Could not find a spaCy model that is called '{model_or_lang}'"
+                                  f" or that starts with '{model_or_lang}_'."
+                                  " See the error trace above for more info.") from exc
+
+                logger.info(f"Specified spaCy model '{model_or_lang}' not found. Using {model_name} instead.")
+                nlp = spacy.load(model_name, exclude=exclude, **kwargs)
+
             if is_tokenized:
-                # Disable sentence segmentation through senter or sentencizer component as well
-                nlp = spacy.load(model_or_lang, exclude=["senter", "sentencizer"], **kwargs)
+                # Disable tokenization with custom tokenizer
                 nlp.tokenizer = SpacyPretokenizedTokenizer(nlp.vocab)
                 # It is still possible that the dependency parser leads to segmentation, disable
                 nlp.add_pipe("prevent_sbd", name="prevent-sbd", before="parser")
-            else:
-                nlp = spacy.load(model_or_lang, **kwargs)
         elif parser == "stanza":
             if auto_download:
                 stanza.download(model_or_lang, verbose=False)
