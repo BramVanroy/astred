@@ -154,7 +154,6 @@ def load_parser(
                 lang=model_or_lang,
                 tokenize_pretokenized=is_tokenized,
                 use_gpu=use_gpu,
-                logging_level="WARNING",
                 **kwargs,
             )
         else:
