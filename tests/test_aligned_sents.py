@@ -27,7 +27,7 @@ def test_aligned_sents__one_dummy(aligned):
 
 @parametrize_with_cases("aligned", cases=TestAlignedSents)
 def test_aligned_sents__seq_spans_are_seq(aligned):
-    # span pairs are tuple(src, tgt, is_mwe). So don't check mwe values for spantype
+    # span pairs are tuple(src, tgt, is_mwg). So don't check mwg values for spantype
     # (they don't have spantypes because they are bools...)
     assert all(
         span.span_type == SpanType.SEQ
