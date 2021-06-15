@@ -106,6 +106,9 @@ class Sentence(SpanMixin):
 
     @staticmethod
     def _on_multiple_error_handling(sents, on_multiple: str = "raise") -> Optional[Union[StanzaSentence, SpacySpan]]:
+        if on_multiple not in ("raise", "warn", "ignore", "none"):
+            raise ValueError(f"'on_multiple' must be one of raise, warn, ignore ({on_multiple} given)")
+
         if len(sents) > 1:
             try:
                 sents_repr = "\n".join([" ".join([w.text for w in sent]) for sent in sents])
@@ -139,10 +142,7 @@ class Sentence(SpanMixin):
         doc: Union[StanzaDoc, StanzaSentence, SpacyDoc, SpacySpan],
         include_subtypes: bool = False,
         on_multiple: str = "raise",
-    ) -> Sentence:
-        if on_multiple not in ("raise", "warn", "ignore", "none"):
-            raise ValueError(f"'on_multiple' must be one of raise, warn, ignore ({on_multiple} given)")
-
+    ) -> Optional[Sentence]:
         # If the given element is a full parsed doc, we need to check how many sentences it has (we only want one)
         if STANZA_AVAILABLE and isinstance(doc, StanzaDoc):
             sentence = cls._on_multiple_error_handling(doc.sentences, on_multiple=on_multiple)
@@ -158,6 +158,8 @@ class Sentence(SpanMixin):
             )
         elif SPACY_AVAILABLE and isinstance(sentence, SpacySpan):
             return cls([Word.from_spacy(w, include_subtypes=include_subtypes) for w in sentence], _sentence=sentence)
+        else:
+            return None
 
     @classmethod
     def from_text(

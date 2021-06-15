@@ -8,7 +8,7 @@ extras = {"stanza": ["stanza"],
 
 extras["parsers"] = extras["stanza"] + extras["spacy"]
 extras["all"] = extras["stanza"] + extras["spacy"]
-extras["dev"] = extras["all"] + ["isort>=5.5.4", "black", "flake8", "pytest", "pytest_cases", "pygments"],
+extras["dev"] = extras["all"] + ["isort>=5.5.4", "black", "flake8", "pytest", "pytest_cases", "pygments"]
 
 setup(
     name="astred",

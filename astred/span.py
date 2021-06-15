@@ -16,7 +16,7 @@ class Span(Crossable, SpanMixin):
     span_type: SpanType = None
     attach: bool = field(default=True)
     tree: Tree = field(default=None, init=False, repr=False)
-    is_mwe: bool = field(default=False)
+    is_mwg: bool = field(default=False)
 
     def __repr__(self):
         return f"{self.__class__.__name__}(id={self.id}, span_type={self.span_type}, text={self.text})"
@@ -112,4 +112,4 @@ class NullSpan(Span):
         super().__init__(id=0, words=[null_word], span_type=span_type, is_null=True)
 
 
-SpanPair = NamedTuple("SpanPair", [("src", Span), ("tgt", Span), ("is_mwe", bool)])
+SpanPair = NamedTuple("SpanPair", [("src", Span), ("tgt", Span), ("is_mwg", bool)])

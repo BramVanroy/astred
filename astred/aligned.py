@@ -27,7 +27,7 @@ class AlignedSentences:
     tgt: Sentence
     word_aligns: Union[List[Union[IdxPair, Tuple[int, int]]], str] = field(default=None)
     aligner: Optional[Aligner] = field(default=None, repr=False)
-    allow_mwe: bool = field(default=True)
+    allow_mwg: bool = field(default=True)
     make_copies: bool = field(default=False)
 
     aligned_words: List[WordPair] = field(default_factory=list, init=False, repr=False)
@@ -114,14 +114,14 @@ class AlignedSentences:
 
     @property
     def no_null_sacr_pairs(self):
-        """Removes any NULL alignments (-1 to exclude MWE from comparison. Is included in list, though)
+        """Removes any NULL alignments (-1 to exclude MWG from comparison. Is included in list, though)
         :return:
         """
         return [pair for pair in self.aligned_sacr_spans if not any(p.is_null for p in pair[:-1])]
 
     @property
     def no_null_seq_pairs(self):
-        """Removes any NULL alignments (-1 to exclude MWE from comparison. Is included in list, though)
+        """Removes any NULL alignments (-1 to exclude MWG from comparison. Is included in list, though)
         :return:
         """
         return [pair for pair in self.aligned_seq_spans if not any(p.is_null for p in pair[:-1])]
@@ -149,23 +149,23 @@ class AlignedSentences:
             pair.tgt.add_aligned(pair.src)
 
     @staticmethod
-    def check_mwe_and_external_align(pairs: List[WordPair], src_ids: Set[int], tgt_ids: Set[int]) -> Tuple[bool, bool]:
+    def check_mwg_and_external_align(pairs: List[WordPair], src_ids: Set[int], tgt_ids: Set[int]) -> Tuple[bool, bool]:
         """For a given list of :class:`WordPair`, and a set of its ``src_ids`` and ``tgt_ids``, check whether this
-        group is a multi-word expression (MWE) and whether any of the involved words is aligned with words outside of
+        group is a multi-word expression (MWG) and whether any of the involved words is aligned with words outside of
         this group. A multi-word expression here is defined as a group of more than one source and target words, and
         for which all words in the source group are aligned with all words in the target group, and vice-versa.
         :param pairs: a list of :class:`WordPair`
         :param src_ids: a set containing all the source indices (int) in ``pairs``
         :param tgt_ids:a set containing all the target indices (int) in ``pairs``
-        :return: a tuple of booleans indicating: (i) whether this list of pairs is a MWE; (ii) whether any of
+        :return: a tuple of booleans indicating: (i) whether this list of pairs is a MWG; (ii) whether any of
         the involved words is aligned to words that are not part of any of the involved :class:`WordPair`s.
         """
         n_src = len(unique_list([p.src for p in pairs]))
         n_tgt = len(unique_list([p.tgt for p in pairs]))
 
-        # MWE must consist of more than one source and target word
+        # MWG must consist of more than one source and target word
         # Later we then check whether each word is aligned with all other words in the group
-        is_mwe = n_src > 1 and n_tgt > 1
+        is_mwg = n_src > 1 and n_tgt > 1
 
         has_external_align = False
         for wordpair in pairs:
@@ -174,8 +174,8 @@ class AlignedSentences:
 
             # Check whetther each source word is attached to all target words
             # If it is set to False once, don't try to change it.
-            if is_mwe and (aligned_to_src != tgt_ids or aligned_to_tgt != src_ids):
-                is_mwe = False
+            if is_mwg and (aligned_to_src != tgt_ids or aligned_to_tgt != src_ids):
+                is_mwg = False
 
             # Check whether the aligned indices of all words are a subset of the actual idxs.
             # If it is not a subset (and it contains more idxs than the actual idxs), then that
@@ -184,10 +184,10 @@ class AlignedSentences:
                 has_external_align = True
 
             # Break because these proeprties cannot change anymore.
-            if not is_mwe and has_external_align:
+            if not is_mwg and has_external_align:
                 break
 
-        return is_mwe, has_external_align
+        return is_mwg, has_external_align
 
     def init_word_aligns(self):
         if not self.word_aligns:
@@ -247,16 +247,16 @@ class AlignedSentences:
     def is_valid_sequence(self, pairs, src_ids, tgt_ids):
         # Check if:
         # - src and tgt idxs are consecutive and the group has no external alignments
-        # - if there are internal crosses, only allow this group if it's MWE and MWE is allowed
+        # - if there are internal crosses, only allow this group if it's MWG and MWG is allowed
         # - if no internal cross at this stage, it is a valid group
-        is_mwe, has_external_align = self.check_mwe_and_external_align(pairs, src_ids, tgt_ids)
+        is_mwg, has_external_align = self.check_mwg_and_external_align(pairs, src_ids, tgt_ids)
         idxs_consec = self.idxs_are_consecutive(src_ids) and self.idxs_are_consecutive(tgt_ids)
 
         is_valid = False
         if idxs_consec and not has_external_align:
-            # If there is an internal cross, this can only be a valid group if it is a MWE
+            # If there is an internal cross, this can only be a valid group if it is a MWG
             if self.has_internal_cross(pairs):
-                is_valid = self.allow_mwe and is_mwe
+                is_valid = self.allow_mwg and is_mwg
             else:
                 # When we got this far, it must be a valid group:
                 # - src and tgt ids are consecutive
@@ -264,11 +264,11 @@ class AlignedSentences:
                 # - there are no internal crosses
                 is_valid = True
 
-        return is_valid, is_mwe
+        return is_valid, is_mwg
 
     def create_sacr_spans(self):
         def is_valid_sacr_pair(pair):
-            _is_valid = pair.src.is_valid_subtree and pair.tgt.is_valid_subtree or (self.allow_mwe and spanpair.is_mwe)
+            _is_valid = pair.src.is_valid_subtree and pair.tgt.is_valid_subtree or (self.allow_mwg and spanpair.is_mwg)
             _is_valid = _is_valid or (pair.src.is_null and pair.tgt.is_null)
             return _is_valid
 
@@ -280,10 +280,10 @@ class AlignedSentences:
         def add_found(spair, s_ids, t_ids):
             found["src"].update(s_ids)
             found["tgt"].update(t_ids)
-            s_words, t_words = map(list, spair[:-1])  # Exclude mwe
+            s_words, t_words = map(list, spair[:-1])  # Exclude mwg
             src_word_groups.append(s_words)
             tgt_word_groups.append(t_words)
-            sacr_spans.append((min(s_ids), min(t_ids), spair.is_mwe))
+            sacr_spans.append((min(s_ids), min(t_ids), spair.is_mwg))
 
         # This should probably be written more DRY-y
         for spanpair in self.aligned_seq_spans:
@@ -314,18 +314,18 @@ class AlignedSentences:
                         continue
 
                     # First check if this new group is a valid sequence group
-                    is_valid_seq, is_mwe = self.is_valid_sequence(pairs, src_ids, tgt_ids)
+                    is_valid_seq, is_mwg = self.is_valid_sequence(pairs, src_ids, tgt_ids)
                     if not is_valid_seq:
                         continue
 
                     src_words, tgt_words = map(list, zip(*pairs))
                     tmp_src = Span(
-                        id=1, words=unique_list(src_words), span_type=SpanType.SACR, attach=False, is_mwe=is_mwe
+                        id=1, words=unique_list(src_words), span_type=SpanType.SACR, attach=False, is_mwg=is_mwg
                     )
                     tmp_tgt = Span(
-                        id=1, words=unique_list(tgt_words), span_type=SpanType.SACR, attach=False, is_mwe=is_mwe
+                        id=1, words=unique_list(tgt_words), span_type=SpanType.SACR, attach=False, is_mwg=is_mwg
                     )
-                    tmp_spanpair = SpanPair(tmp_src, tmp_tgt, is_mwe)
+                    tmp_spanpair = SpanPair(tmp_src, tmp_tgt, is_mwg)
 
                     if tmp_is_singles or is_valid_sacr_pair(tmp_spanpair):
                         add_found(tmp_spanpair, src_ids, tgt_ids)
@@ -348,14 +348,14 @@ class AlignedSentences:
             if not src_ids.isdisjoint(found["src"]) or not tgt_ids.isdisjoint(found["tgt"]):
                 continue
 
-            is_valid, is_mwe = self.is_valid_sequence(pairs, src_ids, tgt_ids)
+            is_valid, is_mwg = self.is_valid_sequence(pairs, src_ids, tgt_ids)
             if is_valid:
                 found["src"].update(src_ids)
                 found["tgt"].update(tgt_ids)
                 src_words, tgt_words = map(list, zip(*pairs))
                 src_word_groups.append(src_words)
                 tgt_word_groups.append(tgt_words)
-                seq_spans.append((min(src_ids), min(tgt_ids), is_mwe))
+                seq_spans.append((min(src_ids), min(tgt_ids), is_mwg))
 
         self.create_spans(seq_spans, src_word_groups, tgt_word_groups, found, span_type=SpanType.SEQ)
 
@@ -378,8 +378,8 @@ class AlignedSentences:
             spans.append((p.src.id, p.tgt.id, False))
 
         spans = sorted(set(spans), key=operator.itemgetter(0, 1))
-        src_idxs, tgt_idxs, mwes = zip(*spans)
-        spans = list(zip(rebase_to_idxs(src_idxs), rebase_to_idxs(tgt_idxs), mwes))
+        src_idxs, tgt_idxs, mwgs = zip(*spans)
+        spans = list(zip(rebase_to_idxs(src_idxs), rebase_to_idxs(tgt_idxs), mwgs))
 
         # Convert src/tgt words in groups of words so that they appear in the same order as in the original sentence
         # So the first item will always be a Null word
@@ -406,16 +406,16 @@ class AlignedSentences:
         setattr(self.src, f"{span_type}_spans", src_spans)
         setattr(self.tgt, f"{span_type}_spans", tgt_spans)
 
-        # Set MWE
-        for src_idx, tgt_idx, mwe in spans:
-            src_spans[src_idx].is_mwe = mwe
-            tgt_spans[tgt_idx].is_mwe = mwe
+        # Set MWG
+        for src_idx, tgt_idx, mwg in spans:
+            src_spans[src_idx].is_mwg = mwg
+            tgt_spans[tgt_idx].is_mwg = mwg
 
         # Create span alignment pairs
         setattr(
             self,
             f"aligned_{span_type}_spans",
-            [SpanPair(src_spans[src_idx], tgt_spans[tgt_idx], mwe) for src_idx, tgt_idx, mwe in spans],
+            [SpanPair(src_spans[src_idx], tgt_spans[tgt_idx], mwg) for src_idx, tgt_idx, mwg in spans],
         )
         setattr(
             self,
