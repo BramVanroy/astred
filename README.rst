@@ -1,8 +1,5 @@
-Easily comparing two word-aligned sentences with ASTrED
-=======================================================
-
-Documentation, and more tests to be added.
-
+Easily compare two word-aligned sentences with ASTrED
+=====================================================
 
 Example notebooks
 -----------------
@@ -91,5 +88,33 @@ Licensed under Apache License Version 2.0. See the LICENSE file attached to this
 Citation
 --------
 Please cite our `papers`_ if you use this library.
+
+Vanroy, B., De Clercq, O., Tezcan, A., Daems, J., & Macken, L. (in press). Metrics of syntactic equivalence to assess
+translation difficulty. In M. Carl (Ed.), *Explorations in empirical translation process research*. Springer
+International Publishing.
+
+.. code-block::
+
+	@incollection{vanroy2020metrics,
+		publisher = {{Springer International Publishing}},
+		author = {Vanroy, Bram and De Clercq, Orphée and Tezcan, Arda and Daems, Joke and Macken, Lieve},
+		booktitle = {Explorations in empirical translation process research},
+		editor = {Carl, Michael},
+		title = {Metrics of syntactic equivalence to assess translation difficulty},
+		year = {in press}
+	}
+
+Vanroy, B., Schaeffer, M., & Macken, L. (2021). Comparing the effect of productbased metrics on the translation
+process. [manuscript submitted for publication].
+
+.. code-block::
+
+	@article{vanroy2021comparing,
+		publisher = {{manuscript submitted for publication}},
+		author = {Vanroy, Bram and Schaeffer, Moritz and Macken, Lieve},
+		title = {Comparing the effect of product-based metrics on the translation process},
+		year = {2021}
+	}
+
 
 .. _papers: CITATION
