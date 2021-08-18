@@ -111,7 +111,7 @@ Publishing. https://doi.org/10.1007/978-3-030-69777-8_10
 	    doi = {10.1007/978-3-030-69777-8_10}
 	}
 
-Vanroy, B., Schaeffer, M., & Macken, L. (2021) Comparing the Effect of Product-Based Metrics on the Translation Process. *Frontiers in Psychology*, 12, 681945. https://doi.org/10.3389/fpsyg.2021.681945
+Vanroy, B., Schaeffer, M., & Macken, L. (2021) Comparing the Effect of Product-Based Metrics on the Translation Process. *Frontiers in Psychology*, 12. https://doi.org/10.3389/fpsyg.2021.681945
 
 .. code-block::
 
@@ -122,7 +122,6 @@ Vanroy, B., Schaeffer, M., & Macken, L. (2021) Comparing the Effect of Product-B
 	    year = {2021},
 	    journal = {Frontiers in Psychology},
 	    volume = {12}, 
-	    pages = {3372}
 	    issn = {1664-1078}, 
 	    url = {https://www.frontiersin.org/article/10.3389/fpsyg.2021.681945},
 	    doi = {10.3389/fpsyg.2021.681945}, 
