@@ -99,7 +99,7 @@ Publishing. https://doi.org/10.1007/978-3-030-69777-8_10
 	    title = {Metrics of syntactic equivalence to assess translation difficulty},
 	    booktitle = {Explorations in empirical translation process research},
 	    author = {Vanroy, Bram and De Clercq, Orph{\'e}e and Tezcan, Arda and Daems, Joke and Macken, Lieve},
-	    editor = {Carl, Michael and Way, Andy},
+	    editor = {Carl, Michael},
 	    year = {2021},
 	    series = {Machine {{Translation}}: {{Technologies}} and {{Applications}}},
 	    volume = {3},
