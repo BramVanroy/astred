@@ -89,9 +89,9 @@ Citation
 --------
 Please cite our `papers`_ if you use this library.
 
-Vanroy, B., De Clercq, O., Tezcan, A., Daems, J., & Macken, L. (2021). Metrics of Syntactic Equivalence to Assess
-Translation Difficulty. In *Explorations in Empirical Translation Process Research* (pp. 259–294). Springer International
-Publishing. https://doi.org/10.1007/978-3-030-69777-8_10
+Vanroy, B., De Clercq, O., Tezcan, A., Daems, J., & Macken, L. (2021). Metrics ofsyntactic equivalence to assess 
+translation difficulty. In M. Carl (Ed.), *Explorations in empirical translation process research* (Vol. 3, pp. 259–294).
+Cham, Switzerland: Springer International Publishing. https://doi.org/10.1007/978-3-030-69777-8_10
 
 .. code-block::
 
