@@ -60,22 +60,21 @@ class Aligner:
         )
 
     def align(self, src_sentence, tgt_sentence):
-        with torch.no_grad():
-            ids_src, ids_tgt, bpe2word_map_src, bpe2word_map_tgt = self.preprocess(src_sentence, tgt_sentence)
-            # Make it work for batch of one
-            inputs = [ids_src.unsqueeze(0), ids_tgt.unsqueeze(0), (bpe2word_map_src,), (bpe2word_map_tgt,)]
-            word_aligns = self.model.get_aligned_word(
-                *inputs,
-                self.device,
-                0,
-                0,
-                align_layer=8,
-                extraction=self.extraction,
-                softmax_threshold=self.softmax_threshold,
-                test=True,
-            )
-            aligns = list(word_aligns[0])
-            aligns.sort(key=operator.itemgetter(0, 1))
+        ids_src, ids_tgt, bpe2word_map_src, bpe2word_map_tgt = self.preprocess(src_sentence, tgt_sentence)
+        # Make it work for batch of one
+        inputs = [ids_src.unsqueeze(0), ids_tgt.unsqueeze(0), (bpe2word_map_src,), (bpe2word_map_tgt,)]
+        word_aligns = self.model.get_aligned_word(
+            *inputs,
+            self.device,
+            0,
+            0,
+            align_layer=8,
+            extraction=self.extraction,
+            softmax_threshold=self.softmax_threshold,
+            test=True,
+        )
+        aligns = list(word_aligns[0])
+        aligns.sort(key=operator.itemgetter(0, 1))
 
         return aligns
 
