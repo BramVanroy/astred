@@ -89,9 +89,9 @@ Citation
 --------
 Please cite our `papers`_ if you use this library.
 
-Vanroy, B., Clercq, O. D., Tezcan, A., Daems, J., & Macken, L. (2021). Metrics of Syntactic Equivalence to Assess
-Translation Difficulty. In *Explorations in Empirical Translation Process Research* (pp. 259–294). Springer International
-Publishing. https://doi.org/10.1007/978-3-030-69777-8_10
+Vanroy, B., De Clercq, O., Tezcan, A., Daems, J., & Macken, L. (2021). Metrics ofsyntactic equivalence to assess 
+translation difficulty. In M. Carl (Ed.), *Explorations in empirical translation process research* (Vol. 3, pp. 259–294).
+Cham, Switzerland: Springer International Publishing. https://doi.org/10.1007/978-3-030-69777-8_10
 
 .. code-block::
 
@@ -99,7 +99,7 @@ Publishing. https://doi.org/10.1007/978-3-030-69777-8_10
 	    title = {Metrics of syntactic equivalence to assess translation difficulty},
 	    booktitle = {Explorations in empirical translation process research},
 	    author = {Vanroy, Bram and De Clercq, Orph{\'e}e and Tezcan, Arda and Daems, Joke and Macken, Lieve},
-	    editor = {Carl, Michael and Way, Andy},
+	    editor = {Carl, Michael},
 	    year = {2021},
 	    series = {Machine {{Translation}}: {{Technologies}} and {{Applications}}},
 	    volume = {3},
@@ -111,7 +111,7 @@ Publishing. https://doi.org/10.1007/978-3-030-69777-8_10
 	    doi = {10.1007/978-3-030-69777-8_10}
 	}
 
-Vanroy, B., Schaeffer, M., & Macken, L. (2021) Comparing the Effect of Product-Based Metrics on the Translation Process. *Frontiers in Psychology*, 12. https://doi.org/10.3389/fpsyg.2021.681945
+Vanroy, B., Schaeffer, M., & Macken, L. (2021). Comparing the Effect of Product-Based Metrics on the Translation Process. *Frontiers in Psychology*, 12. https://doi.org/10.3389/fpsyg.2021.681945
 
 .. code-block::
 
