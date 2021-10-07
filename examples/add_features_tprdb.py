@@ -13,8 +13,8 @@ Please cite our papers when you use this script. See https://github.com/BramVanr
 """
 
 
-from dataclasses import dataclass, field
 import logging
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Union
 
@@ -22,6 +22,7 @@ import pandas as pd
 from astred import AlignedSentences, Sentence, Word
 from astred.utils import load_parser
 from tqdm import tqdm
+
 
 logger = logging.getLogger("astred")
 logger.setLevel("INFO")
@@ -145,18 +146,24 @@ class MetricAdder:
             tseg_id = row["TTseg"]
 
             if "more_than_one_tseg" in row and row["more_than_one_tseg"]:
-                logger.error(f"Source segment {row_idx+1} ({st.stem}) is translated as multiple sentences as"
-                             " indicated by the 'more_than_one_tseg' column in the SG table. Skipping...")
+                logger.error(
+                    f"Source segment {row_idx+1} ({st.stem}) is translated as multiple sentences as"
+                    " indicated by the 'more_than_one_tseg' column in the SG table. Skipping..."
+                )
                 return False
 
             if "more_than_one_sseg" in row and row["more_than_one_sseg"]:
-                logger.error(f"Source segment {row_idx+1} ({st.stem}) consists of multiple sentences as indicated by"
-                             " the 'more_than_one_sseg' column in the SG table. Skipping...")
+                logger.error(
+                    f"Source segment {row_idx+1} ({st.stem}) consists of multiple sentences as indicated by"
+                    " the 'more_than_one_sseg' column in the SG table. Skipping..."
+                )
                 return False
 
             if "less_than_one_tseg" in row and row["less_than_one_tseg"]:
-                logger.error(f"Source segment {row_idx+1} ({st.stem}) is translated as a partial sentence as indicated"
-                             " by the 'less_than_one_tseg' column in the SG table. Skipping...")
+                logger.error(
+                    f"Source segment {row_idx+1} ({st.stem}) is translated as a partial sentence as indicated"
+                    " by the 'less_than_one_tseg' column in the SG table. Skipping..."
+                )
                 return False
 
             try:
@@ -171,18 +178,24 @@ class MetricAdder:
                     side="tgt",
                 )
             except KeyError:
-                raise KeyError("--src_lang or --tgt_lang not given and no 'SL' or 'TL' column found. The parser does"
-                               " not know which language to use. Please specify the language code with --src_lang"
-                               " and --tgt_lang.")
+                raise KeyError(
+                    "--src_lang or --tgt_lang not given and no 'SL' or 'TL' column found. The parser does"
+                    " not know which language to use. Please specify the language code with --src_lang"
+                    " and --tgt_lang."
+                )
 
             if src_sent is None:
-                logger.error(f"Source segment {row_idx+1} ({st.stem}) consists of multiple sentences as per the parse"
-                             " of the automatic parser. Skipping...")
+                logger.error(
+                    f"Source segment {row_idx+1} ({st.stem}) consists of multiple sentences as per the parse"
+                    " of the automatic parser. Skipping..."
+                )
                 return False
 
             if tgt_sent is None:
-                logger.error(f"Source segment {row_idx+1} ({st.stem}) is translated as multiple sentences as per the"
-                             " parse of the automatic parser. Skipping...")
+                logger.error(
+                    f"Source segment {row_idx+1} ({st.stem}) is translated as multiple sentences as per the"
+                    " parse of the automatic parser. Skipping..."
+                )
                 return False
 
             min_src_id = self.st_df.query(f"{self.seg_cols['src']}==@sseg_id")["Id"].min()
@@ -202,8 +215,10 @@ class MetricAdder:
                 )
 
                 if src_aligns != tgt_aligns:
-                    raise ValueError("Inconsistency in the data: the alignment from source to target is not the same"
-                                     " as from target to source.")
+                    raise ValueError(
+                        "Inconsistency in the data: the alignment from source to target is not the same"
+                        " as from target to source."
+                    )
 
                 if not src_aligns:
                     raise ValueError
@@ -277,9 +292,7 @@ class MetricAdder:
             # crosses are 0 for unaligned words/word groups
             df.loc[orig_idx, "word_cross"] = word.cross if word.cross is not None else 0
             df.loc[orig_idx, "seq_cross"] = word.seq_group.cross if word.seq_group.cross is not None else 0
-            df.loc[orig_idx, "sacr_cross"] = (
-                word.sacr_group.cross if word.sacr_group.cross is not None else 0
-            )
+            df.loc[orig_idx, "sacr_cross"] = word.sacr_group.cross if word.sacr_group.cross is not None else 0
 
             df.loc[orig_idx, "astred_change"] = word.tree.astred_cost > 0
             df.loc[orig_idx, "astred_op"] = word.tree.astred_op
@@ -354,12 +367,12 @@ if __name__ == "__main__":
     cparser.add_argument(
         "--no_check_multiple",
         help="By default, the script will NOT process segments that contain multiple sentences. The reason is that"
-             " dependency trees are specific to single sentences. The parser will try to check how many sentences are"
-             " present in a segment. If more than one, the segment will not be processed. Alternatively, specific"
-             " manually created columns can also be used. See the script description for more. If you do not want the"
-             " parser to automatically check for the number of sentences, then you should use this option. When"
-             " enabled, all segments will be processed except for those where specific columns are set to TRUE, as "
-             " described in the script description.",
+        " dependency trees are specific to single sentences. The parser will try to check how many sentences are"
+        " present in a segment. If more than one, the segment will not be processed. Alternatively, specific"
+        " manually created columns can also be used. See the script description for more. If you do not want the"
+        " parser to automatically check for the number of sentences, then you should use this option. When"
+        " enabled, all segments will be processed except for those where specific columns are set to TRUE, as "
+        " described in the script description.",
         default=False,
         action="store_true",
     )

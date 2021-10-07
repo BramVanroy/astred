@@ -21,8 +21,8 @@ try:
     if version.parse(spacy.__version__) >= version.parse("3.0"):
         from spacy.language import Language as SpacyLanguage
         from spacy.tokens import Doc as SpacyDoc
-        from spacy.vocab import Vocab as SpacyVocab
         from spacy.util import get_installed_models
+        from spacy.vocab import Vocab as SpacyVocab
 
         SPACY_AVAILABLE = True
     else:
@@ -134,9 +134,11 @@ def load_parser(
                 try:
                     model_name = next(m for m in get_installed_models() if m.startswith(f"{model_or_lang}_"))
                 except StopIteration:
-                    raise OSError(f"Could not find a spaCy model that is called '{model_or_lang}'"
-                                  f" or that starts with '{model_or_lang}_'."
-                                  " See the error trace above for more info.") from exc
+                    raise OSError(
+                        f"Could not find a spaCy model that is called '{model_or_lang}'"
+                        f" or that starts with '{model_or_lang}_'."
+                        " See the error trace above for more info."
+                    ) from exc
 
                 logger.info(f"Specified spaCy model '{model_or_lang}' not found. Using {model_name} instead.")
                 nlp = spacy.load(model_name, exclude=exclude, **kwargs)
