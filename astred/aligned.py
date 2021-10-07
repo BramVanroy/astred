@@ -513,9 +513,11 @@ class AlignedSentences:
 
         cost = 0
         for src_match, tgt_match in self.ted_ops:
-            # node repr as used by the config class to calculate TED
-            src_repr = src_match.node.connected_repr if src_match else None
-            tgt_repr = tgt_match.node.connected_repr if tgt_match else None
+            # Node repr as used by the AstredConfig to calculate TED:
+            # By default, the representation is attr="connected_repr" to calculate ASTrED
+            # But a custom config can be used as well, e.g. to calculate regular TED, with attr="deprel"
+            src_repr = getattr(src_match.node, self.ted_config.attr) if src_match else None
+            tgt_repr = getattr(tgt_match.node, self.ted_config.attr) if tgt_match else None
 
             if src_repr == tgt_repr:
                 src_match.astred_op = EditOperation.MATCH
